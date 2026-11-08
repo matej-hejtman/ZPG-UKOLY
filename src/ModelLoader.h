@@ -10,7 +10,7 @@ class Model;
 
 struct ModelPart {
     std::unique_ptr<Model> model;
-    std::string texturePath;        
+    std::string texturePath;
     glm::vec3 diffuseColor = glm::vec3(1.0f);
 };
 

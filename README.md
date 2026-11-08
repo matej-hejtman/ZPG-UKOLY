@@ -8,22 +8,31 @@ OpenGL 3.3 core, GLFW, GLAD (glad2, header-only), GLM. Build přes CMake. Podrob
 CMakeLists.txt  cíle ZPG (aplikace) a composite_test (samostatný test kompozitu)
 src/            Application, Shader, ShaderProgram, Model, DrawableObject, Scene, Camera,
                 ICameraObserver, Light, Material, CustomMatrix, Transformation (abstraktní), Translate, Rotate, Scale,
-                DynamicRotate, TransformationComposite, BasicModels.h, main.cpp
+                DynamicRotate, TransformationComposite, Texture, TextureManager, CubeMap, Skybox, ModelLoader,
+                BasicModels.h, main.cpp
 tests/          composite_test.cpp
 assets/shaders/ model.vert, foliage.vert, clock.vert, lit.vert, litFoliage.vert, color.frag, normal.frag,
-                constant.frag, lambert.frag, phong.frag, blinn.frag
-assets/models/  přiložené modely (needitováno) + loginModel.h (převedený login),
+                constant.frag, lambert.frag, phong.frag, blinn.frag, skybox.vert, skybox.frag
+assets/models/  přiložené modely (needitováno) + login.h (login z Blenderu s barvou, podpis v rohu),
+                loginModel.h (převedený login bez barvy, scéna 6),
                 rocket.h (vlastní model rakety z Blenderu)
-tools/          convert_login.py (login.h 9 floatů → loginModel.h 6 floatů)
+assets/shrek/   Shrek, Fiona, toaleta (OBJ + MTL + textury)
+assets/skybox/  cubemap/ = 6 obrázků oblohy (posx … negz)
+assets/EB408/   EB408.blend (z LMS), eb408.obj + MTL + textury (sestavená učebna)
+assets/textures/ whiteboard_zpg.png (vlastní obsah tabule)
+assets/test/    testovací textury (šachovnice, dřevo, náhradní skybox)
+assets/Texture/ wooden_fence.png (podlaha ve scéně 12) + vzorový projekt k texturám
+tools/          convert_login.py (login.h 9 floatů → loginModel.h 6 floatů),
+                build_eb408.py (Blender: sestavení a export učebny)
 docs/           class_diagram.png
 libs/glad/      GLAD 2 (GL 3.3 core)
 libs/glm/       GLM 1.0.1
 libs/glfw/      (jen Windows) include/ + lib-vc2022/glfw3.lib
-screenshots/    cv1-2/, cv3/, cv4/, cv5/, cv6/, cv7/
+screenshots/    cv1-2/, cv3/, cv4/, cv5/, cv6/, cv7/, cv8/
 ```
 
 ## Build
-**Linux:** `sudo apt install libglfw3-dev`, potom
+**Linux:** `sudo apt install libglfw3-dev libassimp-dev`, potom
 ```
 cmake -B build && cmake --build build
 ./build/ZPG
@@ -31,20 +40,36 @@ cmake -B build && cmake --build build
 ```
 **Windows / Visual Studio:** prebuilt GLFW (64-bit) → `include/` a `lib-vc2022/` do `libs/glfw/`. Ve VS *File → Open → Folder*, spustit cíl `ZPG`. Všechny cesty jsou relativní k `${CMAKE_SOURCE_DIR}` (ekvivalent `$(SolutionDir)`).
 
-## Ovládání (cvičení 7)
+## Ovládání (cvičení 8)
 | Vstup | Akce |
 |---|---|
 | 1–9, 0 | scéna: 1 les, 2 hodiny, 3 sluneční soustava, 4 pořadí T·R / R·T, 5 modelová matice, 6 login, 7 čtyři koule, 8 normály + test w = 5, 9 odlesk na odvrácené straně, 0 noční les |
+| TAB / Shift+TAB | další / předchozí scéna, i scény bez číselné klávesy: 11 Shrek, 12 Shrek + Fiona + toaleta, 13 učebna EB408 |
+| U | UV test: texturovací souřadnice jako barva (červená = u, zelená = v) |
 | N | převod normál: 0 bez transformace → 1 modelová matice → 2 normálová matice (výpis do konzole) |
 | O | ořezání odlesku na odvrácené straně (Phong) zap/vyp |
 | V | změna okna mění i aspect (správně) / jen viewport (roztažené) |
 | C / L / P / B | osvětlení čtyř koulí: konstantní / Lambert / Phong / Blinn-Phong |
 | F | další zorný úhel (30–170°) |
 | W / S / A / D, pravé tlačítko myši | pohyb a rozhlížení kamery |
+| E / Q | kamera nahoru / dolů (po svislé ose y) |
 | ← → ↑ ↓, `+` / `−`, R | posun / zoom / otočení celé scény (i se světlem) |
 | Esc | konec |
 
 > České rozložení: `+` je na stejné fyzické klávese jako `1`, proto zoom používá numerickou klávesnici.
+
+## Souhrn – cvičení 8
+Screenshoty jsou v `screenshots/cv8/`.
+
+| Úkol | Stav | Řešení v kódu | Teorie |
+|---|---|---|---|
+| 1a | Splněno | Knihovna stb_image (`libs/stb`, `STB_IMAGE_IMPLEMENTATION` jen v `Texture.cpp`). Třída `Texture`: `stbi_set_flip_vertically_on_load(true)`, `stbi_load(..., 4)`, `glTexImage2D` RGBA, `glGenerateMipmap`, `GL_REPEAT`, `GL_LINEAR_MIPMAP_LINEAR` / `GL_LINEAR`. Shrek z OBJ přes Assimp (`ModelLoader`, 8 floatů na vrchol, UV = atribut 2). `phong.frag`: `texture(textureUnit, texCoord)` jako základní barva Phonga. Scéna 11 (TAB). `HEJ0094_1a.png`, UV test klávesou U `HEJ0094_1a_uv_test.png` | Obrázky mají počátek vlevo nahoře, OpenGL vlevo dole, proto flip. Mipmapy = zmenšené kopie textury. Trilineární filtrování míchá bilineární výsledek ze dvou sousedních úrovní, takže vzdálená textura nebliká. |
+| 1b | Splněno | Každý `DrawableObject` drží vlastní `Texture*`. Podlaha je `texturedFloor` z `BasicModels.h` s opakovanou texturou dřevěných prken `assets/Texture/wooden_fence.png`. V `draw()` ji naváže na jednotku 0 (`glActiveTexture` + `glBindTexture`) a pošle `textureUnit = 0`, `hasTexture = 1`. `TextureManager` načte každý obrázek jen jednou. Scéna 12: Shrek, Fiona a toaleta, každý s texturou ze svého MTL. `HEJ0094_1b.png` | Sampler odkazuje na texturovací jednotku (slot), ne na ID textury. Mezi draw cally se do stejného slotu naváže jiná textura, proto stačí jedna jednotka pro všechny objekty. |
+| 1c | Splněno | `CubeMap`: 6 obrázků `posx, negx, posy, negy, posz, negz` do `GL_TEXTURE_CUBE_MAP_POSITIVE_X + i`, bez flipu, `GL_CLAMP_TO_EDGE` v S, T, R, `GL_TEXTURE_CUBE_MAP_SEAMLESS`. `Skybox`: krychle `skycube` (3 floaty na vrchol), `skybox.vert` s `mat4(mat3(viewMatrix))`, kreslí se v `Scene::draw` první s `glDepthMask(GL_FALSE)`. `HEJ0094_1c.png` | Cubemapa se čte směrovým vektorem (pozice na krychli = směr ze středu). Odstraněním posunu z view matice zůstává krychle kolem kamery, takže obloha nejde dohnat. Bez zápisu hloubky ji každý objekt překreslí. |
+| 2a | Splněno | Skript `tools/build_eb408.py` (Blender 4.5): do `EB408.blend` připojí (append) dveře a tabuli z LMS a umístí je podle stěn změřených paprsky. Export do `assets/EB408/eb408.obj` (Forward −Z, Up Y, UV, normály, materiály, triangulace, kopie textur). Assimp z něj udělá 7 částí s vlastní texturou. Scéna 13: světlo pod stropem, ambient 0,3, kamera uvnitř, skybox za okny. `HEJ0094_2a.png` | Blender má osu Z nahoru, OpenGL Y. Exportér přepočítá (x, y, z) → (x, z, −y). Každý materiál OBJ = jedna `aiMesh` = jeden `DrawableObject`. |
+| 2b | Splněno | Přidány modely z LMS: katedra v pravém předním rohu naproti dveřím, 9 stolů ve třech řadách, 19 oranžových židlí čelem k tabuli (v Blenderu) a Shrek u katedry (v kódu přes `loadObject`, textura sdílená přes `TextureManager`). `HEJ0094_2b.png` | Kopie v Blenderu jsou linked duplicates (sdílený mesh, vlastní transformace). Shrek je samostatný objekt se sdíleným modelem a texturou. |
+| 2c | Splněno | Tabule má vlastní obrázek `assets/textures/whiteboard_zpg.png` s Phongovým modelem (vzorce I = I_a + I_d + I_s, složky, reflect, útlum, obrázek vektorů n, l, r, c). Skript dá jen popisovatelné ploše nový materiál a rovinné UV, rám si nechá původní texturu. `HEJ0094_2c.png` | Původní textura tabule je atlas (rám + plocha). Proto se nemění celý obrázek, ale jen plochy desky dostanou nový materiál. |
+| 2d | Čeká | Video 30–60 s průchodu učebnou (OBS nebo Win + G) natočí a nahraje autor na Discord. Odkaz doplnit sem. | |
 
 ## Souhrn – cvičení 7
 | Úkol | Stav | Řešení v kódu | Teorie |

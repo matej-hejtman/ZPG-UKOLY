@@ -2,7 +2,6 @@
 #pragma once
 #include "Transformation.h"
 
-// Leaf: scaling (non-uniform with a vector, uniform with a single number)
 class Scale : public Transformation {
 public:
     explicit Scale(const glm::vec3& factor);

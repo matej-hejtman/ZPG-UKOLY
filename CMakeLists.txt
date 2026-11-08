@@ -35,24 +35,6 @@ else()
     target_compile_options(ZPG PRIVATE -Wall -Wextra)
 endif()
 
-# Standalone console test of the transformation Composite (no window, no OpenGL)
-add_executable(composite_test
-    ${CMAKE_SOURCE_DIR}/tests/composite_test.cpp
-    ${CMAKE_SOURCE_DIR}/src/Translate.cpp
-    ${CMAKE_SOURCE_DIR}/src/Rotate.cpp
-    ${CMAKE_SOURCE_DIR}/src/Scale.cpp
-    ${CMAKE_SOURCE_DIR}/src/DynamicRotate.cpp
-    ${CMAKE_SOURCE_DIR}/src/TransformationComposite.cpp)
-target_include_directories(composite_test PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/libs/glm)
-if(WIN32)
-    target_include_directories(composite_test PRIVATE ${CMAKE_SOURCE_DIR}/libs/glfw/include)
-    target_link_directories(composite_test PRIVATE ${CMAKE_SOURCE_DIR}/libs/glfw/lib-vc2022)
-    target_link_libraries(composite_test PRIVATE glfw3.lib opengl32.lib)
-else()
-    target_link_libraries(composite_test PRIVATE glfw)
-    target_compile_options(composite_test PRIVATE -Wall -Wextra)
-endif()
-
 # Copy shaders and models next to the executable so relative paths work there too
 add_custom_command(TARGET ZPG POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

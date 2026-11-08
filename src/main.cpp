@@ -1,8 +1,7 @@
 // Author: Matt Hejtman, login: HEJ0094
 #include "Application.h"
 
-int main()
-{
+int main() {
     Application app;
     app.initialization();
     app.createShaders();

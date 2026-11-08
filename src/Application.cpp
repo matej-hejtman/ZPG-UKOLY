@@ -25,6 +25,7 @@
 #include "bushes.h"
 #include "clock.h"
 #include "earth.h"
+#include "login.h"
 #include "loginModel.h"
 #include "moon.h"
 #include "plain.h"
@@ -35,6 +36,7 @@
 
 #include <glm/glm.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -117,7 +119,7 @@ void Application::createShaders() {
     treeProgram = createProgram("assets/shaders/foliage.vert", "assets/shaders/color.frag");
     bushProgram = createProgram("assets/shaders/foliage.vert", "assets/shaders/color.frag");
     clockProgram = createProgram("assets/shaders/clock.vert", "assets/shaders/color.frag");
-    hudProgram = createProgram("assets/shaders/model.vert", "assets/shaders/normal.frag");
+    hudProgram = createProgram("assets/shaders/model.vert", "assets/shaders/color.frag");
     constantProgram = createProgram("assets/shaders/lit.vert", "assets/shaders/constant.frag");
     lambertProgram = createProgram("assets/shaders/lit.vert", "assets/shaders/lambert.frag");
     phongProgram = createProgram("assets/shaders/lit.vert", "assets/shaders/phong.frag");
@@ -176,7 +178,7 @@ void Application::addSignature(Scene* scene) {
     TransformationComposite* signature = make<TransformationComposite>();
     signature->addStatic(Translate(glm::vec3(0.77f, -0.93f, -0.9f)));
     signature->addStatic(Scale(0.2f));
-    scene->addStatic(createObject(loginTextModel, hudProgram, signature));
+    scene->addStatic(createObject(loginColorModel, hudProgram, signature));
 }
 
 void Application::addClock(Scene* scene, const glm::vec3& position, float angleY, float scale)
@@ -208,6 +210,7 @@ void Application::plantForest(Scene* scene, ShaderProgram* treeShader, ShaderPro
             if (glm::length(glm::vec2(x - c.x, z - c.z)) < 4.0f) {
                 return false;
             }
+            
             return true;
         }
     };
@@ -472,17 +475,12 @@ Skybox* Application::getSkybox() {
         return skyboxes.front().get();
     }
 
-    static const char* FACES[] = {"right", "left", "top", "bottom", "front", "back"};
+    static const char* FACES[] = {"posx", "negx", "posy", "negy", "posz", "negz"};
+    static const char* PLACEHOLDERS[] = {"right", "left", "top", "bottom", "front", "back"};
     std::array<std::string, 6> paths;
 
     for (int i = 0; i < 6; ++i) {
-        std::string path = std::string("assets/textures/skybox/") + FACES[i] + ".jpg";
-
-        if (!std::filesystem::exists(path)) {
-            path = std::string("assets/textures/skybox/") + FACES[i] + ".png";
-        }
-
-        paths[i] = pathOrPlaceholder(path, std::string("assets/test/skybox/") + FACES[i] + ".png");
+        paths[i] = pathOrPlaceholder(std::string("assets/skybox/cubemap/") + FACES[i] + ".jpg", std::string("assets/test/skybox/") + PLACEHOLDERS[i] + ".png");
     }
 
     cubeMaps.push_back(std::make_unique<CubeMap>(paths));
@@ -536,6 +534,22 @@ Bounds Application::loadObject(Scene* scene, const std::string& path, const glm:
     return bounds;
 }
 
+void Application::createShrekScene() {
+    Scene* scene = createScene();
+    scene->setSkybox(getSkybox());
+    scene->getLight()->setPosition(glm::vec3(1.5f, 3.0f, 3.0f));
+    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+    scene->getCamera()->setPosition(glm::vec3(0.0f, 1.0f, 2.6f), 95.0f, -90.0f);
+
+    Material material;
+    material.ambient = glm::vec3(0.25f);
+    material.specular = glm::vec3(0.3f);
+
+    loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(0.0f), 0.0f, 1.8f, phongProgram, material);
+
+    addSignature(scene);
+}
+
 void Application::createTextureScene() {
     Scene* scene = createScene();
     scene->setSkybox(getSkybox());
@@ -548,11 +562,14 @@ void Application::createTextureScene() {
     material.ambient = glm::vec3(0.25f);
     material.specular = glm::vec3(0.3f);
 
-    loadObject(scene, "assets/test/floor.obj", glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material);
+    DrawableObject* floor = createObject(floorModel, phongProgram, makeComposite(scene));
+    floor->setMaterial(material);
+    floor->setTexture(textureManager->get("assets/Texture/wooden_fence.png"));
+    scene->add(floor);
 
-    loadObject(scene, pathOrPlaceholder("assets/models/obj/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(-2.5f, 0.0f, 0.0f), 0.0f, 1.8f, phongProgram, material);
-    loadObject(scene, pathOrPlaceholder("assets/models/obj/fiona/fiona.obj", "assets/test/test_b.obj"), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 1.6f, phongProgram, material);
-    loadObject(scene, pathOrPlaceholder("assets/models/obj/toilet/toilet.obj", "assets/test/test_c.obj"), glm::vec3(2.5f, 0.0f, 0.0f), 0.0f, 0.9f, phongProgram, material);
+    loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(-2.5f, 0.0f, 0.0f), 0.0f, 1.8f, phongProgram, material);
+    loadObject(scene, pathOrPlaceholder("assets/shrek/fiona.obj", "assets/test/test_b.obj"), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 1.6f, phongProgram, material);
+    loadObject(scene, pathOrPlaceholder("assets/shrek/toiled.obj", "assets/test/test_c.obj"), glm::vec3(2.5f, 0.0f, 0.0f), 0.0f, 0.9f, phongProgram, material);
 
     addSignature(scene);
 }
@@ -566,15 +583,17 @@ void Application::createClassroomScene() {
     material.specular = glm::vec3(0.2f);
     material.shininess = 16.0f;
 
-    const Bounds room = loadObject(scene, pathOrPlaceholder("assets/models/obj/eb408/eb408.obj", "assets/test/classroom.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material);
+    const Bounds room = loadObject(scene, pathOrPlaceholder("assets/EB408/eb408.obj", "assets/test/classroom.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material);
 
     const glm::vec3 center = (room.min + room.max) * 0.5f;
-    scene->getLight()->setPosition(glm::vec3(center.x, room.max.y - 0.3f, center.z));
+
+    loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(room.min.x + 0.9f, room.min.y, center.z - 1.8f), 90.0f, 1.8f, phongProgram, material);
+
+    scene->getLight()->setPosition(glm::vec3(center.x, std::min(room.max.y - 0.3f, room.min.y + 2.6f), center.z));
     scene->getLight()->setAttenuation(1.0f, 0.045f, 0.0075f);
 
-    const float depth = room.max.z - room.min.z;
     scene->getCamera()->setSpeed(2.5f);
-    scene->getCamera()->setPosition(glm::vec3(center.x, room.min.y + 1.6f, center.z + 0.35f * depth), 92.0f, -90.0f);
+    scene->getCamera()->setPosition(glm::vec3(room.max.x - 0.5f, room.min.y + 1.6f, center.z), 97.0f, 180.0f);
     addSignature(scene);
 }
 
@@ -595,10 +614,12 @@ void Application::createModels() {
     centeredTriangleModel = addModel(centeredTriangle, sizeof(centeredTriangle) / sizeof(float));
     groundModel = addModel(ground, sizeof(ground) / sizeof(float));
     plainModel = addModel(plain, sizeof(plain) / sizeof(float));
+    floorModel = addModel(texturedFloor, sizeof(texturedFloor) / sizeof(float), 8);
     sphereModel = addModel(sphere, sizeof(sphere) / sizeof(float));
     treeModel = addModel(tree, sizeof(tree) / sizeof(float));
     bushModel = addModel(bushes, sizeof(bushes) / sizeof(float));
     loginTextModel = addModel(loginModel, sizeof(loginModel) / sizeof(float));
+    loginColorModel = addModel(login, sizeof(login) / sizeof(float), 9, 6);
     sunModel = addModel(sun_vertices, sizeof(sun_vertices) / sizeof(float), 9, 3, 6);
     earthModel = addModel(earth_vertices, sizeof(earth_vertices) / sizeof(float), 9, 3, 6);
     moonModel = addModel(moon_vertices, sizeof(moon_vertices) / sizeof(float), 9, 3, 6);
@@ -607,18 +628,19 @@ void Application::createModels() {
     skycubeModel = addModel(skycube, sizeof(skycube) / sizeof(float), 3);
     textureManager = std::make_unique<TextureManager>();
 
-    createForestScene();      
-    createClockScene();       
-    createSolarSystemScene(); 
-    createOrderScene();       
-    createModelMatrixScene(); 
-    createLoginScene();       
-    createSpheresScene();     
-    createNormalsScene();     
+    createForestScene();
+    createClockScene();
+    createSolarSystemScene();
+    createOrderScene();
+    createModelMatrixScene();
+    createLoginScene();
+    createSpheresScene();
+    createNormalsScene();
     createBackSpecularScene();
-    createNightForestScene(); 
-    createTextureScene();     
-    createClassroomScene();   
+    createNightForestScene();
+    createShrekScene();
+    createTextureScene();
+    createClassroomScene();
 
     activateScene(0);
 }
@@ -809,9 +831,11 @@ void Application::processInput(float deltaTime) {
     if (pressed(GLFW_KEY_S)) camera->moveBackward(deltaTime);
     if (pressed(GLFW_KEY_A)) camera->moveLeft(deltaTime);
     if (pressed(GLFW_KEY_D)) camera->moveRight(deltaTime);
+    if (pressed(GLFW_KEY_E)) camera->moveUp(deltaTime);
+    if (pressed(GLFW_KEY_Q)) camera->moveDown(deltaTime);
 
-    const float moveSpeed = 0.8f; 
-    const float zoomSpeed = 1.5f; 
+    const float moveSpeed = 0.8f;
+    const float zoomSpeed = 1.5f;
     const float spinSpeed = 90.0f;
 
     glm::vec3 move(0.0f);
@@ -859,7 +883,7 @@ void Application::releaseResources() {
     colorProgram = normalProgram = treeProgram = bushProgram = clockProgram = hudProgram = nullptr;
     constantProgram = lambertProgram = phongProgram = blinnProgram = nullptr;
     nightTreeProgram = nightBushProgram = skyboxProgram = nullptr;
-    centeredTriangleModel = groundModel = plainModel = sphereModel = treeModel = bushModel = nullptr;
-    loginTextModel = sunModel = earthModel = moonModel = clockModelGpu = rocketModel = nullptr;
+    centeredTriangleModel = groundModel = plainModel = floorModel = sphereModel = treeModel = bushModel = nullptr;
+    loginTextModel = loginColorModel = sunModel = earthModel = moonModel = clockModelGpu = rocketModel = nullptr;
     skycubeModel = nullptr;
 }

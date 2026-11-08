@@ -48,7 +48,7 @@ glm::vec3 Camera::right() const {
 }
 
 void Camera::rotate(float dx, float dy)   {
-    phi += dx * sensitivity;  
+    phi += dx * sensitivity;
     alpha += dy * sensitivity;
     alpha = std::clamp(alpha, 1.0f, 179.0f);
     updateTarget();
@@ -72,6 +72,16 @@ void Camera::moveLeft(float deltaTime) {
 
 void Camera::moveRight(float deltaTime) {
     eye += right() * speed * deltaTime;
+    notifyAll();
+}
+
+void Camera::moveUp(float deltaTime) {
+    eye += up * speed * deltaTime;
+    notifyAll();
+}
+
+void Camera::moveDown(float deltaTime) {
+    eye -= up * speed * deltaTime;
     notifyAll();
 }
 

@@ -16,6 +16,6 @@ private:
     GLuint vbo = 0;
     GLuint vao = 0;
     GLsizei vertexCount = 0;
-    bool hasUV = false;            
+    bool hasUV = false;
     bool hasColorAttribute = false;
 };

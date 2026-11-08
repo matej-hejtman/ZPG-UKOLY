@@ -3,7 +3,7 @@
 
 Tento dokument prochází **každý soubor projektu řádek po řádku**. U každého řádku (nebo malé skupiny souvisejících řádků) vysvětluje, **co dělá** a **proč je napsaný právě takhle**. Soubory jsou seřazené tak, jak dávají smysl při čtení: nejdřív build, pak `main`, nejjednodušší třídy, nakonec `Application`, která všechno spojuje.
 
-> **Verze:** kapitoly 1–15 popisují základ z cvičení 1 + 2. Kapitola 16 popisuje změny cvičení 3 (uniformy, `Transformation` jako jednoduchá třída, `transform.vert`, ovládání, les, login). Kapitola 17 popisuje cvičení 4 (modelová matice, vzor Kompozit, náhodný les, sluneční soustava). Kapitola 18 popisuje cvičení 5 (kamera, Observer, procházení lesa, hodiny). Kapitola 19 popisuje cvičení 6 (světlo a osvětlovací modely). Kapitola 20 popisuje cvičení 7 (normálová matice, ukázky chyb, materiál, útlum, noční les). **Platí vždy nejnovější kapitola.** Ve cvičení 7 byla odstraněna scéna s koulí barvenou normálami a pevné `AMBIENT`/`shininess` v shaderech nahradila třída Material. Ve cvičení 5 byl odstraněn obrácený test hloubky z cvičení 4 a parametr `view` scény (nahradila je kamera). Ve cvičení 4 byl `transform.vert` nahrazen `model.vert`, třída `Transformation` se stala abstraktní a `constant.frag` byl odstraněn.
+> **Verze:** kapitoly 1–15 popisují základ z cvičení 1 + 2. Kapitola 16 popisuje změny cvičení 3 (uniformy, `Transformation` jako jednoduchá třída, `transform.vert`, ovládání, les, login). Kapitola 17 popisuje cvičení 4 (modelová matice, vzor Kompozit, náhodný les, sluneční soustava). Kapitola 18 popisuje cvičení 5 (kamera, Observer, procházení lesa, hodiny). Kapitola 19 popisuje cvičení 6 (světlo a osvětlovací modely). Kapitola 20 popisuje cvičení 7 (normálová matice, ukázky chyb, materiál, útlum, noční les). Kapitola 21 popisuje cvičení 8 (textury, Assimp, skybox, učebna EB408). **Platí vždy nejnovější kapitola.** Ve cvičení 7 byla odstraněna scéna s koulí barvenou normálami a pevné `AMBIENT`/`shininess` v shaderech nahradila třída Material. Ve cvičení 5 byl odstraněn obrácený test hloubky z cvičení 4 a parametr `view` scény (nahradila je kamera). Ve cvičení 4 byl `transform.vert` nahrazen `model.vert`, třída `Transformation` se stala abstraktní a `constant.frag` byl odstraněn.
 
 ## Obsah
 1. [Celkový přehled architektury](#1-celkový-přehled-architektury)
@@ -26,6 +26,7 @@ Tento dokument prochází **každý soubor projektu řádek po řádku**. U kaž
 18. [Cvičení 5: kamera, Observer, procházení lesa, hodiny](#18-cvičení-5-kamera-observer-procházení-lesa-hodiny)
 19. [Cvičení 6: osvětlovací modely](#19-cvičení-6-osvětlovací-modely)
 20. [Cvičení 7: normálová matice, ukázky chyb, noční les](#20-cvičení-7-normálová-matice-ukázky-chyb-noční-les)
+21. [Cvičení 8: textury, skybox, učebna EB408](#21-cvičení-8-textury-skybox-učebna-eb408)
 
 ---
 
@@ -4298,6 +4299,18 @@ Stejný les, osvětlené programy, noční materiál. **Bez hodin**: hodiny kres
         const std::size_t index = key == GLFW_KEY_0 ? 9 : static_cast<std::size_t>(key - GLFW_KEY_1);
 ```
 Klávesa 0 je na klávesnici za 9, proto index 9 (desátá scéna).
+- **Klávesy E / Q = kamera nahoru / dolů:** nové metody `Camera::moveUp` a `Camera::moveDown`, volané v `processInput` vedle WASD.
+```cpp
+void Camera::moveUp(float deltaTime)
+{
+    eye += up * speed * deltaTime;
+    notifyAll();
+}
+...
+    if (pressed(GLFW_KEY_E)) camera->moveUp(deltaTime);
+    if (pressed(GLFW_KEY_Q)) camera->moveDown(deltaTime);
+```
+Posun je po **světové svislici** `up` = (0, 1, 0), ne po směru pohledu. Kamera tak stoupá a klesá rovně bez ohledu na to, kam se dívá, a výška se dá měnit nezávisle na W/S. `target` se nemění, takže směr pohledu zůstává stejný. Stejně jako u WASD platí `speed · deltaTime` (rychlost nezávislá na FPS) a `notifyAll()` pošle novou pohledovou matici shaderům. Q a E nebyly dosud obsazené, s ostatními klávesami se nepřekrývají.
 - Programy: `nightTreeProgram`, `nightBushProgram` přidané do `cameraPrograms` i `litPrograms`. `plainModel` = `plain.h`.
 
 ### 20.11 Ověření
@@ -4319,3 +4332,470 @@ Klávesa 0 je na klávesnici za 9, proto index 9 (desátá scéna).
 - **Kdy platí N = M?** Pro rotace (ortogonální matice, M⁻¹ = Mᵀ). Pro uniformní měřítko až na délku, kterou opraví normalizace (20.2).
 - **Co udělá matice s 5 vpravo dole?** Nastaví w = 5. Po dělení w je objekt 5× menší. Proto ve shaderu `worldPosition = wp.xyz / wp.w`, jinak by osvětlení počítalo se špatnou pozicí (20.2, scéna 8).
 - **Proč útlum nenásobí ambient?** Ambient je světlo okolí bez konkrétního zdroje a vzdálenosti. Útlum patří jen přímému světlu ze zdroje (difúzní a zrcadlové složky), jinak by vzdálené objekty byly úplně černé (20.6).
+
+---
+
+## 21. Cvičení 8: textury, skybox, učebna EB408
+
+Cíl cvičení: **textury** načtené knihovnou stb_image, **modely ze souborů** (Assimp) s vlastní texturou pro každou část, **skybox** z cubemapy a scéna **učebny EB408** sestavená v Blenderu, s tabulí s tématem ZPG.
+
+### 21.1 Přehled změn
+
+| Soubor | Změna |
+|---|---|
+| `Model.h/.cpp` | obecný formát vrcholu: `floatsPerVertex` 3 / 6 / 8, atribut 2 = UV |
+| `BasicModels.h` | `skycube` (krychle skyboxu), `texturedFloor` (podlaha s UV) |
+| `Texture.h/.cpp` | **nová** třída: 2D textura ze souboru (stb_image), mipmapy, `bind(unit)` |
+| `TextureManager.h/.cpp` | **nová** třída: cache cesta → textura, stejný obrázek se načte jen jednou |
+| `CubeMap.h/.cpp` | **nová** třída: cubemapa ze 6 obrázků |
+| `Skybox.h/.cpp` | **nová** třída: krychle + program + cubemapa, kreslí se bez zápisu hloubky |
+| `ModelLoader.h/.cpp` | **nová** třída: načtení OBJ přes Assimp, jeden `Model` na každou část |
+| `DrawableObject.h/.cpp` | volitelná `Texture*`, v `draw()` ji naváže na jednotku 0 |
+| `Scene.h/.cpp` | volitelný skybox, kreslí se první |
+| `lit.vert` | atribut `uv` (location 2) → `texCoord` |
+| `phong.frag` | `sampler2D textureUnit`, `hasTexture`, `uvTest` (klávesa U) |
+| `skybox.vert`, `skybox.frag` | **nové** shadery skyboxu |
+| `Application.h/.cpp` | `loadObject`, `getSkybox`, scény 11 (Shrek), 12 (tři modely), 13 (učebna), klávesa U, `GL_TEXTURE_CUBE_MAP_SEAMLESS`, podpis z barevného `login.h` |
+| `CMakeLists.txt` | `libs/stb` v include cestách, Assimp (`find_package(assimp)` / `assimp-vc143-mt.lib`) |
+| `tools/build_eb408.py` | **nový** skript pro Blender: sestaví a vyexportuje učebnu |
+| `assets/shrek/` | Shrek, Fiona, toaleta (OBJ + MTL + textury) |
+| `assets/skybox/cubemap/` | 6 obrázků oblohy |
+| `assets/EB408/` | sestavená učebna `eb408.obj` + MTL + textury |
+| `assets/textures/whiteboard_zpg.png` | vlastní obsah tabule (Phongův model) |
+
+**Podpis v rohu obrazovky** se teď kreslí z `login.h` (9 floatů: pozice, normála, barva z Blenderu) místo `loginModel.h` (6 floatů, barva z normál). `Model` se vytvoří s `floatsPerVertex = 9` a `attribute1Offset = 6`, takže atribut 1 je barva vrcholu. `hudProgram` = `model.vert` + `color.frag` a podpis má barevný přechod tak, jak byl vytvořený v Blenderu. Program není napojený na kameru, podpis zůstává v souřadnicích obrazovky. Velký login ve scéně 6 dál používá `loginModel.h`.
+
+Scény 11–13 nemají číselnou klávesu (1–9 a 0 jsou obsazené), přepínají se **TAB** (další) a **Shift+TAB** (předchozí).
+
+---
+
+### 21.2 Model: obecný formát vrcholu
+
+```cpp
+Model(const float* data, std::size_t floatCount, int floatsPerVertex = 6, int attribute1Offset = 3, int colorOffset = -1);
+```
+- `floatsPerVertex` určuje, kolik floatů má jeden vrchol: **3** = jen pozice (skybox), **6** = pozice + normála (modely z `.h` souborů), **8** = pozice + normála + UV (modely z Assimpu).
+- Počet vrcholů = `floatCount / floatsPerVertex`, stride = `floatsPerVertex · sizeof(float)`.
+- `attribute1Offset` a `colorOffset` zůstaly z dřívějších cvičení (login a raketa mají barvu vrcholu jako atribut 3).
+
+```cpp
+    if (floatsPerVertex >= 6) {
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(attribute1Offset * sizeof(float)));
+    }
+
+    if (hasUV) {
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(6 * sizeof(float)));
+    }
+```
+UV = atribut 2, **2 složky**, offset 6 floatů (za pozicí a normálou). Atribut 0 (pozice) je vždy.
+
+```cpp
+void Model::draw() const
+{
+    glBindVertexArray(vao);
+    if (!hasUV) {
+        glVertexAttrib2f(2, 0.0f, 0.0f);
+    }
+    ...
+```
+Když atribut není zapnutý (`glEnableVertexAttribArray`), shader dostane **konstantní hodnotu** nastavenou `glVertexAttrib*`. Modely bez UV tak mají v `lit.vert` `uv = (0, 0)` a stejné shadery fungují pro všechny modely. Hodnota se nastavuje při každém kreslení, protože konstantní atribut není součástí VAO, je to globální stav.
+
+---
+
+### 21.3 Texture a stb_image (úkol 1a)
+
+stb_image je knihovna v **jednom hlavičkovém souboru** (`libs/stb/stb_image.h`). Bez makra obsahuje jen deklarace. S makrem `STB_IMAGE_IMPLEMENTATION` i těla funkcí.
+
+```cpp
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+```
+Makro je v projektu **právě jednou**, v `Texture.cpp`. Kdyby bylo ve dvou `.cpp`, linker by našel každou funkci dvakrát (multiple definition). `CubeMap.cpp` includuje hlavičku bez makra a používá funkce zkompilované v `Texture.cpp`.
+
+```cpp
+Texture::Texture(const std::string& path) {
+    stbi_set_flip_vertically_on_load(true);
+    int width = 0, height = 0, channels = 0;
+    unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, 4);
+```
+- **Flip:** obrázkové formáty ukládají řádky **odshora**, první pixel je vlevo nahoře. OpenGL bere první řádek dat jako **spodní** (v = 0 dole). Bez převrácení by textura byla vzhůru nohama. Blender exportuje UV s v = 0 dole, takže UV se v loaderu neotáčí, převrací se jen obrázek.
+- Poslední parametr `4` = vždy převést na RGBA. Stejný kód pak funguje pro JPG (3 kanály) i PNG (3 nebo 4 kanály). `channels` vrací původní počet.
+
+```cpp
+    if (!pixels) {
+        std::cerr << "Unable to load texture " << path << ": " << stbi_failure_reason() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+```
+Chybějící textura je chyba nasazení (špatná cesta). Program vypíše cestu a důvod a skončí, místo aby kreslil černé objekty.
+
+```cpp
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glGenerateMipmap(GL_TEXTURE_2D);
+```
+- `glTexImage2D` nahraje pixely na GPU (úroveň 0 = plné rozlišení). První `GL_RGBA` = formát uložení na GPU, druhý + `GL_UNSIGNED_BYTE` = formát dat v paměti.
+- `glGenerateMipmap` dopočítá **mipmapy**: zmenšené kopie 1/2, 1/4, … až 1×1 pixel. Paměť navíc je jen třetina (1/4 + 1/16 + … = 1/3).
+
+```cpp
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+```
+- **Wrap `GL_REPEAT`:** UV mimo ⟨0, 1⟩ se opakují (bere se desetinná část). Podlaha ve scéně 12 má UV 0–10, takže se prkna opakují 10× v každém směru.
+- **Mag filtr `GL_LINEAR`:** textura je zvětšená (jeden texel na více pixelů). Barva se bilineárně interpoluje ze 4 nejbližších texelů, takže nejsou vidět čtverečky.
+- **Min filtr `GL_LINEAR_MIPMAP_LINEAR` = trilineární filtrování:** textura je zmenšená (více texelů na pixel). Vyberou se dvě nejbližší úrovně mipmapy, v každé se bilineárně interpoluje a výsledky se lineárně smíchají podle vzdálenosti. Bez mipmap by se ze vzdálené textury vybíral jen jeden z mnoha texelů a vznikalo by blikání a moiré.
+
+```cpp
+    glBindTexture(GL_TEXTURE_2D, 0);
+    stbi_image_free(pixels);
+```
+Data jsou po `glTexImage2D` zkopírovaná na GPU, paměť v RAM se uvolní hned.
+
+```cpp
+void Texture::bind(int unit) const {
+    glActiveTexture(GL_TEXTURE0 + unit);
+    glBindTexture(GL_TEXTURE_2D, id);
+}
+```
+**Texturovací jednotka** je „slot“, ze kterého čte sampler ve shaderu. `glActiveTexture` vybere slot, `glBindTexture` do něj vloží texturu. Počet jednotek je omezený (`GL_MAX_TEXTURE_IMAGE_UNITS`, aspoň 16).
+
+---
+
+### 21.4 TextureManager
+
+```cpp
+Texture* TextureManager::get(const std::string& path) {
+    auto found = textures.find(path);
+    if (found != textures.end()) {
+        return found->second.get();
+    }
+
+    auto texture = std::make_unique<Texture>(path);
+    Texture* pointer = texture.get();
+    textures.emplace(path, std::move(texture));
+    return pointer;
+}
+```
+Mapa cesta → `unique_ptr<Texture>`. Shrek je ve scénách 11, 12 i 13, ale jeho textura (5 MB PNG) se načte a nahraje na GPU **jednou**. Manager textury vlastní, objekty dostanou jen ukazatel (agregace, stejně jako u modelů a programů).
+
+---
+
+### 21.5 Shadery s texturou (úkoly 1a, 1b)
+
+`lit.vert`:
+```glsl
+layout(location = 2) in vec2 uv;      // texture coordinates, (0, 0) for models without UV
+...
+out vec2 texCoord;
+...
+    texCoord = uv;
+```
+UV se jen předá dál. Rasterizace je interpoluje mezi vrcholy trojúhelníku (perspektivně správně), takže každý fragment má vlastní souřadnice do textury.
+
+`phong.frag`:
+```glsl
+uniform sampler2D textureUnit;
+uniform int hasTexture = 0;
+...
+    vec3 surfaceColor = hasTexture == 1 ? texture(textureUnit, texCoord).rgb : vertexColor;
+    vec3 baseColor = surfaceColor * objectColor;
+```
+- `texture(sampler, uv)` přečte barvu z textury na souřadnicích uv (s filtrováním z 21.3).
+- Barva z textury nahradí barvu vrcholu a dál se s ní počítá Phong jako dřív: ambient a difúzní složka násobí `baseColor`, odlesk je jen barva světla.
+- `objectColor` zůstává jako násobitel. U částí bez textury loader nastaví barvu `Kd` z MTL.
+
+**UV test (klávesa U):**
+```glsl
+    if (uvTest == 1)
+    {
+        fragColor = vec4(texCoord, 1.0, 1.0);
+        return;
+    }
+```
+Červená = u, zelená = v. Na modelu se správnými UV vznikne plynulý barevný přechod, po ostrovech UV mapy. Když jsou UV nulové, je model jednobarevně modrý (`vec4(0, 0, 1, 1)`).
+
+---
+
+### 21.6 DrawableObject: vlastní textura (úkol 1b)
+
+```cpp
+    if (program->hasUniform("hasTexture")) {
+        if (texture) {
+            texture->bind(0);
+            program->setUniform("textureUnit", 0);
+            program->setUniform("hasTexture", 1);
+        }
+        else {
+            program->setUniform("hasTexture", 0);
+        }
+    }
+```
+- Každý objekt drží vlastní `Texture*` (nebo `nullptr`). Před svým kreslením ji naváže na jednotku 0.
+- Do sampleru se posílá **číslo jednotky (0), ne ID textury**. Sampler v GLSL je odkaz na slot. Která textura ve slotu je, určuje `glBindTexture`. Proto může mít každý objekt jinou texturu a všechny používají jednotku 0: navázání se změní mezi dvěma draw cally.
+- `hasUniform`: programy bez textur (Lambert, Blinn, konstantní) tyto uniformy nemají, takže se nevypisuje „Uniform … not found“.
+
+---
+
+### 21.7 ModelLoader (Assimp)
+
+```cpp
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_PreTransformVertices);
+```
+- `aiProcess_Triangulate`: čtyřúhelníky a n-úhelníky → trojúhelníky (kreslíme `GL_TRIANGLES`).
+- `aiProcess_GenSmoothNormals`: dopočítá normály, pokud v souboru nejsou.
+- `aiProcess_PreTransformVertices`: když soubor obsahuje hierarchii uzlů s maticemi (FBX), vrcholy se rovnou převedou do souřadnic scény. U OBJ nic nemění.
+- **UV se neotáčí** (`aiProcess_FlipUVs` chybí schválně): převrácení dělá stb_image (21.3). Dvě převrácení by se zrušila a textura by byla obráceně.
+
+```cpp
+    if (!scene || !scene->HasMeshes()) {
+        std::cerr << "Unable to load model " << path << ": " << importer.GetErrorString() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+```
+
+```cpp
+        for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+            const aiFace& face = mesh->mFaces[f];
+            ...
+            for (unsigned int k = 0; k < 3; ++k) {
+                const unsigned int i = face.mIndices[k];
+                ...
+                data.insert(data.end(), {p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y});
+```
+**Rozbalení indexů:** Assimp vrací sdílené vrcholy a indexy ploch. Pro každou plochu se zapíšou tři celé vrcholy (8 floatů) za sebou, takže jde kreslit `glDrawArrays` stejně jako modely z `.h` souborů. Cena: vrcholy sdílené více trojúhelníky jsou v paměti vícekrát. Pro naše modely je to zanedbatelné.
+
+```cpp
+        if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texture) == AI_SUCCESS) {
+            std::string file = texture.C_Str();
+            std::replace(file.begin(), file.end(), '\\', '/');
+            part.texturePath = directory + file;
+        }
+```
+- Každá `aiMesh` = jedna část s jedním materiálem. OBJ ji vytvoří pro každou kombinaci objekt + `usemtl`.
+- Cesta k difúzní textuře (`map_Kd` v MTL) je **relativní ke složce modelu**, proto se před ni dá složka OBJ souboru. Zpětná lomítka (export z Windows) se převedou na `/`.
+- Bez textury zůstane cesta prázdná a použije se barva `Kd` (`AI_MATKEY_COLOR_DIFFUSE`).
+- Loader počítá i **obalový kvádr** (`boundsMin`, `boundsMax`). `Application::loadObject` z něj umí model postavit na zem a zvětšit na danou výšku, takže nezáleží na měřítku, ve kterém byl model exportovaný.
+
+---
+
+### 21.8 Application::loadObject
+
+```cpp
+Bounds Application::loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material)
+```
+- Načte soubor, pro **každou část vytvoří vlastní `DrawableObject`** se společným kompozitem a vlastní texturou z `TextureManager`.
+- `targetHeight > 0`: kompozit [base, Translate(position), Rotate(y), Scale(výška / výška modelu), Translate(−střed podstavy)]. Poslední posun přesune střed spodní stěny obalového kvádru do počátku, takže model stojí na podlaze v bodě `position`. Shrek 1,8, Fiona 1,6.
+- `targetHeight = 0`: model se nechá v původním měřítku (učebna je v metrech).
+- Když textura z MTL neexistuje, vypíše se `texture not found` a použije se barva materiálu.
+- `pathOrPlaceholder`: když chybí model nebo obrázek skyboxu, vypíše se `Not found` a zkusí se náhradní cesta v `assets/test/`. Náhradní OBJ modely byly z projektu odstraněné. Zůstaly jen obrázky (skybox, šachovnice, dřevo), takže bez modelů z LMS program skončí s hláškou loaderu.
+
+---
+
+### 21.9 CubeMap a Skybox (úkol 1c)
+
+```cpp
+    stbi_set_flip_vertically_on_load(false);
+    for (int i = 0; i < 6; ++i) {
+        ...
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+```
+- Konstanty stěn jdou v OpenGL za sebou: +X, −X, +Y, −Y, +Z, −Z. Proto stačí `POSITIVE_X + i` a obrázky v tomto pořadí: `posx, negx, posy, negy, posz, negz` (vpravo, vlevo, nahoře, dole, vpředu, vzadu).
+- **Bez flipu:** specifikace cubemap počítá s počátkem obrázku vlevo nahoře (konvence RenderMan). Převrácení by stěny obrátilo a na hranách by nenavazovaly.
+
+```cpp
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+```
+- Bez mipmap: obloha je vždy „stejně daleko“, zmenšení se nemění.
+- `CLAMP_TO_EDGE` ve všech třech osách: na hraně stěny se nemíchá s protější stranou téže stěny (to by udělal `REPEAT`), takže nejsou vidět švy.
+- `glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS)` (jednou v `initialization`): filtrování na hraně bere texely i ze sousední stěny.
+
+`skybox.vert`:
+```glsl
+    texCoord3 = position;
+    gl_Position = projectionMatrix * mat4(mat3(viewMatrix)) * vec4(position, 1.0);
+```
+- **Cubemapa se čte směrovým vektorem**, ne UV. Pozice vrcholu na krychli kolem počátku je zároveň směr ze středu. GPU vybere stěnu podle největší složky směru a zbylé dvě složky převede na souřadnice v ní. Interpolace směru po stěně krychle dá správný směr pro každý fragment.
+- `mat3(viewMatrix)` vezme jen rotační část pohledové matice (levý horní 3×3 blok). Posun je ve 4. sloupci, ten se zahodí. `mat4(...)` ho doplní zpátky jako 4×4 bez posunu.
+- Výsledek: obloha se **otáčí s pohledem**, ale **neposouvá se** s kamerou. Proto „nejde dohnat“: střed krychle je pořád v kameře, ať se kamera pohne kamkoli.
+
+`skybox.frag`:
+```glsl
+uniform samplerCube skybox;
+...
+    fragColor = texture(skybox, texCoord3);
+```
+Obloha nemá osvětlení, je to obraz vzdáleného okolí.
+
+`Skybox::draw` a `Scene::draw`:
+```cpp
+void Skybox::draw() const {
+    glDepthMask(GL_FALSE);
+    program->use();
+    cubeMap->bind(0);
+    program->setUniform("skybox", 0);
+    cube->draw();
+    glDepthMask(GL_TRUE);
+}
+```
+```cpp
+void Scene::draw() const
+{
+    if (skybox) {
+        skybox->draw();
+    }
+    ...
+```
+- **Proč skybox nezakryje scénu:** kreslí se **první** a se zakázaným zápisem do z-bufferu. Obarví pozadí, ale hloubka zůstane vymazaná na maximum, takže každý další objekt test hloubky projde a nakreslí se přes oblohu. Krychle má hranu 2 (±1) a near plane je 0,1, takže se nikdy neořízne.
+- Krychle je `skycube` z přednášky (`BasicModels.h`, 108 floatů = 36 vrcholů, jen pozice, `floatsPerVertex = 3`).
+- Program skyboxu je v `cameraPrograms`, takže dostává pohledovou a projekční matici přes Observer jako ostatní.
+- Jeden skybox sdílí víc scén (`getSkybox` ho vytvoří při prvním volání).
+
+---
+
+### 21.10 Scény 11 a 12: Shrek a tři modely (úkoly 1a, 1b)
+
+- **11 Shrek** (`createShrekScene`): jen Shrek (`assets/shrek/shrek.obj`, výška 1,8), Phong, světlo bez útlumu vpravo nahoře, skybox. Kamera (0; 1; 2,6) se dívá na Shreka. `HEJ0094_1a.png`, UV test `HEJ0094_1a_uv_test.png`.
+- **12 Shrek, Fiona, toaleta** (`createTextureScene`): tři modely vedle sebe, každý s vlastní texturou ze svého MTL (`shrek.png`, `fiona.png`, `toiled.jpg`), na podlaze s opakovanou texturou dřeva. Podlaha je pole `texturedFloor` v `BasicModels.h` (20 × 20, 8 floatů na vrchol, UV 0–10, `GL_REPEAT`) s texturou `assets/Texture/wooden_fence.png` (fotka prken 2560 × 1920 ze vzorového projektu k texturám). Ukazuje, že `Model` s 8 floaty jde vytvořit i z pole v kódu, nejen z Assimpu. Všechny používají **stejný program a jednotku 0**, liší se jen navázaná textura. `HEJ0094_1b.png`.
+- Modely z LMS byly v Blenderu vyexportované do OBJ (Forward −Z, Up Y, UV, normály, materiály, Triangulate). Textury jsou ve stejné složce, takže `map_Kd shrek.png` v MTL najde loader relativně ke složce modelu.
+
+### 21.11 Učebna EB408 (úkoly 2a, 2b, 2c)
+
+#### Sestavení v Blenderu: tools/build_eb408.py
+
+Učebna, dveře, tabule, stůl a židle jsou z LMS jen jako `.blend`. Skript je spojí do jedné scény a vyexportuje jeden OBJ. Spouští se z kořene projektu:
+```
+blender -b assets/EB408/EB408.blend --python tools/build_eb408.py
+```
+Použitá verze: přenosný Blender 4.5 LTS (stejná verze, ve které byly exportované modely Shreka).
+
+**Měření místnosti.** Polohy stěn se nedají odhadnout z obalového kvádru, protože model obsahuje i konstrukci nad stropem a okenní parapety venku. Proto byly změřené paprsky (`scene.ray_cast`) ze středu místnosti:
+
+| Prvek | Hodnota (osy Blenderu, metry) |
+|---|---|
+| přední stěna (−X, bez oken) | x ≈ −3,84, mírně pootočená: x roste o 0,022 na 1 m y (1,26°) |
+| zadní stěna (−Y) s otvorem dveří | y ≈ −7,49, otvor x = −3,45 … −2,45, výška 2,35 m |
+| boční stěny | y = −7,52 a −0,21 |
+| podlaha / strop | z = 0 / z ≈ 3,09 |
+| stěna +X | řada oken (za nimi je vidět skybox) |
+
+```python
+def append(blend, name):
+    path = os.path.join(ASSETS, blend)
+    with bpy.data.libraries.load(path, link=False) as (src, dst):
+        dst.objects = [name]
+    obj = dst.objects[0]
+    bpy.context.scene.collection.objects.link(obj)
+```
+`libraries.load(link=False)` = **File → Append** z kódu: objekt se i s meshem a materiálem zkopíruje do otevřeného souboru. Cesty k obrázkům jsou v cizím `.blend` relativní (`//T_door_basecolor.png`), proto je skript převede na absolutní, jinak by je export nenašel.
+
+**Dveře** (`SM_Door` + `SM_DoorFrame`): model má hranu se závěsy v x = 0, šířku 1,04 m a měřítko 0,01 (je v centimetrech). Posunou se do středu otvoru v zadní stěně, zárubeň napůl do zdi.
+
+**Tabule:** doprostřed přední stěny (y = −3,86), otočená o −atan(0,022) jako stěna, výška ze souboru (0,94–2,26 m).
+
+**Nábytek (úkol 2b):** katedra (stůl otočený o 90°) s židlí v pravém předním rohu u okenní stěny +Y, naproti dveřím (jako ve skutečné EB408). K tomu tři řady po třech stolech, ke každému dvě židle. Model židle má sedák směrem k −Y. Židle studentů jsou otočené o −90°, takže sedící se dívá k tabuli (−X). Židle katedry je otočená o +90° ke studentům. První verze měla úhel obráceně a studenti seděli zády k tabuli. Kopie jsou **linked duplicates** (`obj.copy()`): sdílí mesh a liší se jen polohou a rotací. Exportér OBJ je ale stejně zapíše každou zvlášť s už transformovanými vrcholy.
+
+#### Vlastní obsah tabule (úkol 2c)
+
+Obrázek `assets/textures/whiteboard_zpg.png` (2048 × 1024): Phongův model I = I_a + I_d + I_s, vzorce složek, `reflect(−l, n)`, útlum a obrázek vektorů n, l, r, c se světlem.
+
+Textura tabule z LMS je **atlas**: horní část obrázku je rám a držák, spodní část bílá plocha. Kdyby se celý obrázek vyměnil, rám by dostal kusy vzorce. Skript proto mění jen popisovatelnou plochu:
+```python
+    front = [f for f in bm.faces if f.normal.x > 0.99]
+    front_x = max(f.calc_center_median().x for f in front)
+    candidates = [f for f in front if f.calc_center_median().x < front_x - 1e-4] or front
+    surface = max(candidates, key=lambda f: f.calc_area())
+```
+- Tabule míří do +X. Plochy s normálou +X jsou přední strany rámu i plochy.
+- Rám vystupuje před plochu, takže plocha je **největší přední plocha, která není nejvíc vpředu**. Skript našel 2 trojúhelníky, y −1,13 … 1,09, z 0,98 … 2,24.
+
+```python
+    for f in faces:
+        f.material_index = index
+        for loop in f.loops:
+            loop[uv].uv = ((loop.vert.co.y - y0) / (y1 - y0), (loop.vert.co.z - z0) / (z1 - z0))
+```
+- Plochy dostanou nový materiál `M_WhiteboardZPG` (Principled BSDF + Image Texture s obrázkem) a **rovinné UV**: obdélník plochy se namapuje na celý obrázek ⟨0, 1⟩².
+- Při pohledu z místnosti (směr −X) míří doprava +Y, proto u roste s y. První verze měla u obráceně a vzorec byl zrcadlově.
+- Poměr stran plochy (2,22 × 1,26 ≈ 1,76) je blízko obrázku (2 : 1), písmo je jen málo stlačené.
+
+#### Export
+
+```python
+    bpy.ops.wm.obj_export(
+        filepath=os.path.join(OUT_DIR, "eb408.obj"),
+        forward_axis='NEGATIVE_Z',
+        up_axis='Y',
+        export_uv=True,
+        export_normals=True,
+        export_materials=True,
+        export_triangulated_mesh=True,
+        path_mode='COPY',
+    )
+```
+- **Osy:** Blender má Z nahoru, OpenGL Y nahoru. Exportér přepočítá (x, y, z) → (x, z, −y). Místnost je pak v OpenGL x = −3,9 … 4,0, y = 0 … 3,4, z = −0,2 … 7,8.
+- `path_mode='COPY'` zkopíruje použité textury vedle OBJ a do MTL zapíše jen jména souborů. Loader je najde relativně ke složce modelu.
+- `export_triangulated_mesh`: Assimp by trianguloval i sám (`aiProcess_Triangulate`), ale soubor je takhle jednoznačný.
+- Výsledek: `assets/EB408/eb408.obj` + `eb408.mtl` + textury. Loader z něj udělá 7 částí, jednu na každý materiál (místnost, dveře, zárubeň, tabule, plocha tabule, stůl, židle). Každá část je vlastní `DrawableObject` s vlastní texturou.
+- Skript uloží i `assets/EB408/EB408_sestaveno.blend`, ve kterém jde rozmístění doladit ručně.
+
+#### createClassroomScene
+
+```cpp
+    const Bounds room = loadObject(scene, pathOrPlaceholder("assets/EB408/eb408.obj", "assets/test/classroom.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material);
+    const glm::vec3 center = (room.min + room.max) * 0.5f;
+
+    loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(room.min.x + 0.9f, room.min.y, center.z - 1.8f), 90.0f, 1.8f, phongProgram, material);
+```
+- Učebna v původním měřítku (`targetHeight = 0`), je v metrech.
+- **Shrek u katedry** (úkol 2b) je samostatný model načtený v kódu. Stojí vedle katedry na straně u tabule (z = střed − 1,8, katedra je u stěny se z ≈ 0,2), aby tabuli nezakrýval. Otočení o 90° kolem y obrátí jeho přední stranu (+Z) ke studentům (+X). Textura se nenačítá znovu, `TextureManager` vrátí tu ze scén 11 a 12.
+- Materiál: ambient 0,3 (vnitřní místnost má hodně odraženého světla, které Phong nepočítá), specular 0,2, shininess 16.
+
+```cpp
+    scene->getLight()->setPosition(glm::vec3(center.x, std::min(room.max.y - 0.3f, room.min.y + 2.6f), center.z));
+    scene->getLight()->setAttenuation(1.0f, 0.045f, 0.0075f);
+```
+- Světlo **pod stropem**, ve 2,6 m. Obalový kvádr sahá do 3,38 m (konstrukce nad stropem), ale strop je ve 3,09 m. První verze dala světlo do `max.y − 0,3` = 3,08 m, tedy těsně pod strop. Světlo pak dopadalo na strop skoro rovnoběžně (n·l ≈ 0) a strop byl tmavý.
+- Slabý útlum: ve 4 m je 0,77, takže místnost je osvětlená celá a rohy jsou jen trochu tmavší.
+
+```cpp
+    scene->getCamera()->setPosition(glm::vec3(room.max.x - 0.5f, room.min.y + 1.6f, center.z), 97.0f, 180.0f);
+```
+Kamera vzadu u oken ve výšce očí, φ = 180° = pohled do −X k tabuli. Skybox zůstává, je vidět za okny. Pohyb W/S/A/D + E/Q a myš.
+
+Polohy se počítají z obalového kvádru místnosti, takže po úpravě v Blenderu a novém exportu není nutné měnit kód.
+
+### 21.12 Ověření
+
+Snímky jsou pořízené z dočasné kopie aplikace, která po 30 snímcích uloží obraz přes `glReadPixels` a skončí. Kód projektu se kvůli tomu neměnil.
+
+| Test | Výsledek |
+|---|---|
+| Build `ZPG`, `-Wall -Wextra` | žádné nové varování (zůstává staré varování v `plantForest`, viz níže) |
+| Spuštění | žádné „Not found … placeholder“, „texture not found“ ani „Uniform … not found“ |
+| Shrek s texturou | správně orientovaná textura, Phongův odlesk (`HEJ0094_1a.png`) |
+| UV test (klávesa U) | barevný přechod po ostrovech UV mapy (`HEJ0094_1a_uv_test.png`) |
+| Tři modely | každý s vlastní texturou, dřevěná podlaha opakovaná 10× (`HEJ0094_1b.png`) |
+| Skybox | obloha a les bez švů, nahoře nebe, neposouvá se s kamerou (`HEJ0094_1c.png`) |
+| Učebna | dveře v otvoru, tabule na přední stěně, skybox za okny (`HEJ0094_2a.png`) |
+| Přidané modely | 10 stolů, 19 židlí čelem k tabuli, katedra naproti dveřím, Shrek u katedry (`HEJ0094_2a.png`, `HEJ0094_2b.png`) |
+| Detail tabule | čitelný Phongův model, ne zrcadlově (`HEJ0094_2c.png`) |
+
+Známé varování překladače, které s cvičením 8 nesouvisí: v `plantForest` má lambda `isFree` `return true` uvnitř cyklu přes hodiny. Kontroluje se tak jen vzdálenost od prvních hodin. Oprava by změnila rozložení lesa na dřívějších screenshotech.
+
+### 21.13 Odpovědi na otázky ke cvičení 8
+
+- **Proč se obrázek při načtení převrací?** Obrázkové formáty mají první řádek nahoře (počátek vlevo nahoře), OpenGL bere první řádek dat jako v = 0, tedy dole. Bez převrácení by textura byla vzhůru nohama (21.3). Cubemapa se nepřevrací, její konvence počítá s počátkem nahoře (21.9).
+- **Co jsou mipmapy a co dělá GL_LINEAR_MIPMAP_LINEAR?** Mipmapy jsou předem zmenšené kopie textury (1/2, 1/4, … 1×1), paměť navíc 1/3. Při zmenšení se čte z úrovně, kde jeden texel ≈ jeden pixel, takže nevzniká blikání a moiré. `GL_LINEAR_MIPMAP_LINEAR` = trilineární filtrování: bilineárně ve dvou sousedních úrovních a mezi nimi lineárně (21.3).
+- **Co je texturovací jednotka a proč do sampleru posíláš číslo, ne ID textury?** Jednotka je slot, do kterého se textura naváže (`glActiveTexture` + `glBindTexture`). Sampler v shaderu odkazuje na slot, ne na konkrétní texturu. Stejný shader tak kreslí různé textury podle toho, co je ve slotu navázané, a každý objekt si před kreslením naváže svou (21.6).
+- **Proč se cubemapa čte směrovým vektorem a ne UV?** Cubemapa představuje okolí viditelné ze středu ve všech směrech. GPU vybere stěnu podle největší složky směru a zbytek převede na souřadnice ve stěně. Pozice na krychli kolem počátku je přímo tento směr (21.9).
+- **Proč skybox nezakryje scénu a proč „nejde dohnat“?** Kreslí se první bez zápisu do z-bufferu, takže hloubka zůstane na maximu a každý další objekt se nakreslí přes něj. Ve view matici se zahodí posun (`mat4(mat3(viewMatrix))`), takže krychle je pořád kolem kamery a otáčí se jen s pohledem (21.9).
+- **Inverzní vs. přímé mapování textury.** Přímé mapování jde od textury k obrazu: každý texel se promítne na plochu a do pixelů. Pixely mohou zůstat prázdné nebo se překrývat. **Inverzní mapování** jde od pixelu k textuře: pro každý fragment se z interpolovaných UV zjistí, kam do textury sáhnout, a barva se dofiltruje. OpenGL používá inverzní mapování (`texture(sampler, uv)` ve fragment shaderu), takže každý pixel má právě jednu barvu.

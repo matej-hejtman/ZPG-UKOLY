@@ -72,6 +72,7 @@ private:
     void createNormalsScene();
     void createBackSpecularScene();
     void createNightForestScene();
+    void createShrekScene();
     void createTextureScene();
     void createClassroomScene();
 
@@ -86,28 +87,28 @@ private:
     double lastCursorX = 0.0;
     double lastCursorY = 0.0;
 
-    ShaderProgram* colorProgram = nullptr;    
-    ShaderProgram* normalProgram = nullptr;   
-    ShaderProgram* treeProgram = nullptr;     
-    ShaderProgram* bushProgram = nullptr;     
-    ShaderProgram* clockProgram = nullptr;    
-    ShaderProgram* hudProgram = nullptr;      
-    ShaderProgram* constantProgram = nullptr; 
-    ShaderProgram* lambertProgram = nullptr;  
-    ShaderProgram* phongProgram = nullptr;    
-    ShaderProgram* blinnProgram = nullptr;    
+    ShaderProgram* colorProgram = nullptr;
+    ShaderProgram* normalProgram = nullptr;
+    ShaderProgram* treeProgram = nullptr;
+    ShaderProgram* bushProgram = nullptr;
+    ShaderProgram* clockProgram = nullptr;
+    ShaderProgram* hudProgram = nullptr;
+    ShaderProgram* constantProgram = nullptr;
+    ShaderProgram* lambertProgram = nullptr;
+    ShaderProgram* phongProgram = nullptr;
+    ShaderProgram* blinnProgram = nullptr;
     ShaderProgram* nightTreeProgram = nullptr;
     ShaderProgram* nightBushProgram = nullptr;
-    ShaderProgram* skyboxProgram = nullptr;   
+    ShaderProgram* skyboxProgram = nullptr;
     std::vector<ShaderProgram*> cameraPrograms;
-    std::vector<ShaderProgram*> litPrograms;  
-    std::vector<DrawableObject*> testSpheres; 
-    std::size_t fovIndex = 2;                 
+    std::vector<ShaderProgram*> litPrograms;
+    std::vector<DrawableObject*> testSpheres;
+    std::size_t fovIndex = 2;
 
-    int normalMode = 2;         
+    int normalMode = 2;
     bool cutBackSpecular = true;
-    bool correctResize = true;  
-    bool uvTest = false;        
+    bool correctResize = true;
+    bool uvTest = false;
 
     Model* centeredTriangleModel = nullptr;
     Model* groundModel = nullptr;
@@ -116,12 +117,14 @@ private:
     Model* treeModel = nullptr;
     Model* bushModel = nullptr;
     Model* loginTextModel = nullptr;
+    Model* loginColorModel = nullptr;
     Model* sunModel = nullptr;
     Model* earthModel = nullptr;
     Model* moonModel = nullptr;
     Model* clockModelGpu = nullptr;
     Model* rocketModel = nullptr;
     Model* skycubeModel = nullptr;
+    Model* floorModel = nullptr;
 
     std::vector<std::unique_ptr<ShaderProgram>> shaderPrograms;
     std::vector<std::unique_ptr<Model>> models;

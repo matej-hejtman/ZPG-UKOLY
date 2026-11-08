@@ -8,13 +8,13 @@ public:
 
     glm::mat4 getMatrix() const override;
 
-    float getAngle() const;              
-    void setSpeed(float degPerSecond);   
+    float getAngle() const;
+    void setSpeed(float degPerSecond);
     float getSpeed() const { return degPerSecond; }
 
 private:
     float degPerSecond;
     glm::vec3 axis;
     float startAngle = 0.0f;
-    double startTime;       
+    double startTime;
 };

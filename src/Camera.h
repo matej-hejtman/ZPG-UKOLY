@@ -24,6 +24,8 @@ public:
     void moveBackward(float deltaTime);
     void moveLeft(float deltaTime);
     void moveRight(float deltaTime);
+    void moveUp(float deltaTime);
+    void moveDown(float deltaTime);
     void setAspect(int width, int height);
     void setFov(float degrees);
     float getFov() const { return fov; }

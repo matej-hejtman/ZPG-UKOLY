@@ -5,8 +5,7 @@ in vec3 worldPosition;
 in vec3 worldNormal;
 in vec3 vertexColor;
 
-struct Material
-{
+struct Material {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -24,24 +23,19 @@ uniform vec3 cameraPosition;
 
 out vec4 fragColor;
 
-// Attenuation of a point light with the distance d, kept in <0, 1>
-float attenuation(float d)
-{
+float attenuation(float d) {
     return clamp(1.0 / (lightConstant + lightLinear * d + lightQuadratic * d * d), 0.0, 1.0);
 }
 
-// Diffuse intensity: cosine of the angle between the normal and the direction to the light,
-// zero when the light is behind the surface
-float diffuse(vec3 n, vec3 l)
-{
+float diffuse(vec3 n, vec3 l) {
     return max(dot(n, l), 0.0);
 }
 
-// Specular intensity: how close the normal is to the half vector between light and camera
-float specularBlinn(vec3 n, vec3 l, vec3 c)
-{
-    if (dot(n, l) < 0.0)
-        return 0.0;                     // light behind the surface -> no highlight
+float specularBlinn(vec3 n, vec3 l, vec3 c) {
+    if (dot(n, l) < 0.0) {
+        return 0.0;
+    }
+    
     vec3 h = normalize(l + c);
     return pow(max(dot(n, h), 0.0), material.shininess);
 }
