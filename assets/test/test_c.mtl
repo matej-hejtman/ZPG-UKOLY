@@ -1,0 +1,6 @@
+# TEST PLACEHOLDER - replace with the real model from LMS
+newmtl mat
+Kd 1.000 1.000 1.000
+Ks 0.3 0.3 0.3
+Ns 32
+map_Kd checker_orange.png
