@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 
-LoadedModel ModelLoader::load(const std::string& path)
+LoadedModel ModelLoader::load(const std::string& path, bool mergeColors)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_PreTransformVertices);
@@ -27,10 +27,17 @@ LoadedModel ModelLoader::load(const std::string& path)
     result.boundsMin = glm::vec3(1e30f);
     result.boundsMax = glm::vec3(-1e30f);
 
+    const int floatsPerVertex = mergeColors ? 11 : 8;
+    std::vector<float> merged;
+
     for (unsigned int m = 0; m < scene->mNumMeshes; ++m) {
         const aiMesh* mesh = scene->mMeshes[m];
+        const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+        aiColor3D color(1.0f, 1.0f, 1.0f);
+        material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+
         std::vector<float> data;
-        data.reserve(static_cast<std::size_t>(mesh->mNumFaces) * 3 * 8);
+        data.reserve(static_cast<std::size_t>(mesh->mNumFaces) * 3 * floatsPerVertex);
 
         for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
             const aiFace& face = mesh->mFaces[f];
@@ -45,6 +52,9 @@ LoadedModel ModelLoader::load(const std::string& path)
                 const aiVector3D n = mesh->HasNormals() ? mesh->mNormals[i] : aiVector3D(0.0f, 1.0f, 0.0f);
                 const aiVector3D uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D(0.0f);
                 data.insert(data.end(), {p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y});
+                if (mergeColors) {
+                    data.insert(data.end(), {color.r, color.g, color.b});
+                }
 
                 result.boundsMin = glm::min(result.boundsMin, glm::vec3(p.x, p.y, p.z));
                 result.boundsMax = glm::max(result.boundsMax, glm::vec3(p.x, p.y, p.z));
@@ -55,10 +65,14 @@ LoadedModel ModelLoader::load(const std::string& path)
             continue;
         }
 
+        if (mergeColors) {
+            merged.insert(merged.end(), data.begin(), data.end());
+            continue;
+        }
+
         ModelPart part;
         part.model = std::make_unique<Model>(data.data(), data.size(), 8);
 
-        const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
         aiString texture;
         
         if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texture) == AI_SUCCESS) {
@@ -67,12 +81,13 @@ LoadedModel ModelLoader::load(const std::string& path)
             part.texturePath = directory + file;
         }
 
-        aiColor3D color(1.0f, 1.0f, 1.0f);
+        part.diffuseColor = glm::vec3(color.r, color.g, color.b);
+        result.parts.push_back(std::move(part));
+    }
 
-        if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
-            part.diffuseColor = glm::vec3(color.r, color.g, color.b);
-        }
-
+    if (mergeColors && !merged.empty()) {
+        ModelPart part;
+        part.model = std::make_unique<Model>(merged.data(), merged.size(), 11, 3, 8);
         result.parts.push_back(std::move(part));
     }
 

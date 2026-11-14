@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -19,6 +20,18 @@ class Material;
 class TextureManager;
 class CubeMap;
 class Skybox;
+
+struct CachedModelPart {
+    Model* model = nullptr;
+    std::string texturePath;
+    glm::vec3 diffuseColor = glm::vec3(1.0f);
+};
+
+struct CachedModel {
+    std::vector<CachedModelPart> parts;
+    glm::vec3 boundsMin = glm::vec3(0.0f);
+    glm::vec3 boundsMax = glm::vec3(0.0f);
+};
 
 struct Bounds
 {
@@ -88,9 +101,13 @@ private:
     void createTerrainScene();
 
     static std::string pathOrPlaceholder(const std::string& path, const std::string& placeholder);
-    Bounds loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material,
-                      DrawableObject::Kind kind = DrawableObject::Kind::Normal, bool useBase = true,
-                      std::vector<DrawableObject*>* created = nullptr);
+    Bounds loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material, DrawableObject::Kind kind = DrawableObject::Kind::Normal, bool useBase = true, std::vector<DrawableObject*>* created = nullptr);
+    const CachedModel& getCachedModel(const std::string& path, bool mergeColors = false);
+    Model* exportModel(const std::string& name);
+    DrawableObject* addExportModel(Scene* scene, const std::string& name, const glm::vec3& position, float rotationY, float scale, const Material& material, DrawableObject::Kind kind = DrawableObject::Kind::Normal);
+    void addCoin(Scene* scene, const glm::vec3& position, float scale, int type);
+    void addNatureProps(Scene* scene, const Material& material, const glm::vec3& offset);
+    void removeObject(Scene* scene, DrawableObject* object);
     Skybox* getSkybox();
     void setSpheresProgram(ShaderProgram* program, const char* name);
 
@@ -155,6 +172,8 @@ private:
 
     std::vector<std::unique_ptr<ShaderProgram>> shaderPrograms;
     std::vector<std::unique_ptr<Model>> models;
+    std::unordered_map<std::string, CachedModel> modelCache;
+    std::vector<std::vector<DrawableObject*>> objectGroups;
     std::vector<std::unique_ptr<Transformation>> transformations;
     std::vector<std::unique_ptr<DrawableObject>> objects;
     std::vector<std::unique_ptr<Scene>> scenes;

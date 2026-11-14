@@ -7,6 +7,7 @@
 #include "DynamicRotate.h"
 #include "GrowScale.h"
 #include "LineMove.h"
+#include "Oscillate.h"
 #include "Material.h"
 #include "ModelLoader.h"
 #include "Model.h"
@@ -141,11 +142,28 @@ void Application::createShaders() {
     nightTreeProgram->setUniform("woodVertexCount", TREE_WOOD_VERTEX_COUNT);
     nightBushProgram->setUniform("woodVertexCount", 0);
 
-    cameraPrograms = {colorProgram, normalProgram, treeProgram, bushProgram, clockProgram,
-                      constantProgram, lambertProgram, phongProgram, blinnProgram,
-                      nightTreeProgram, nightBushProgram, skyboxProgram};
+    cameraPrograms = {
+        colorProgram, 
+        normalProgram, 
+        treeProgram, 
+        bushProgram, 
+        clockProgram,
+        constantProgram, 
+        lambertProgram, 
+        phongProgram, 
+        blinnProgram,
+        nightTreeProgram, 
+        nightBushProgram, 
+        skyboxProgram
+    };
 
-    litPrograms = {lambertProgram, phongProgram, blinnProgram, nightTreeProgram, nightBushProgram};
+    litPrograms = {
+        lambertProgram, 
+        phongProgram, 
+        blinnProgram, 
+        nightTreeProgram, 
+        nightBushProgram
+    };
 }
 
 TransformationComposite* Application::makeComposite(Scene* scene) {
@@ -267,6 +285,14 @@ void Application::createForestScene() {
     scene->add(ground);
 
     plantForest(scene, treeProgram, bushProgram, Material());
+
+    scene->getLight()->setPosition(glm::vec3(10.0f, 30.0f, 25.0f));
+    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+    Material props;
+    props.ambient = glm::vec3(0.35f);
+    props.specular = glm::vec3(0.2f);
+    props.shininess = 16.0f;
+    addNatureProps(scene, props, glm::vec3(0.0f));
     addCollectibles(scene);
     scene->setSkybox(getSkybox());
 
@@ -453,6 +479,7 @@ void Application::createNightForestScene()
     scene->add(ground);
 
     plantForest(scene, nightTreeProgram, nightBushProgram, night);
+    addNatureProps(scene, night, glm::vec3(0.0f, 0.0f, -11.0f));
 
     const glm::vec3 fireflyColor(0.85f, 1.0f, 0.4f);
     TransformationComposite* firefly = makeComposite(scene);
@@ -501,8 +528,87 @@ Skybox* Application::getSkybox() {
     return skyboxes.back().get();
 }
 
+const CachedModel& Application::getCachedModel(const std::string& path, bool mergeColors) {
+    const std::string key = mergeColors ? path + "#merged" : path;
+    auto found = modelCache.find(key);
+    if (found != modelCache.end()) {
+        return found->second;
+    }
+
+    LoadedModel loaded = ModelLoader::load(path, mergeColors);
+    CachedModel cached;
+    cached.boundsMin = loaded.boundsMin;
+    cached.boundsMax = loaded.boundsMax;
+
+    for (ModelPart& part : loaded.parts) {
+        CachedModelPart cachedPart;
+        cachedPart.model = part.model.get();
+        cachedPart.texturePath = part.texturePath;
+        cachedPart.diffuseColor = part.diffuseColor;
+        models.push_back(std::move(part.model));
+        cached.parts.push_back(std::move(cachedPart));
+    }
+
+    return modelCache.emplace(key, std::move(cached)).first->second;
+}
+
+Model* Application::exportModel(const std::string& name) {
+    return getCachedModel("assets/zpg_export/" + name + ".obj", true).parts.front().model;
+}
+
+DrawableObject* Application::addExportModel(Scene* scene, const std::string& name, const glm::vec3& position, float rotationY, float scale,
+                                            const Material& material, DrawableObject::Kind kind) {
+    TransformationComposite* transformation = makeComposite(scene);
+    transformation->addStatic(Translate(position));
+    transformation->addStatic(Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f)));
+    transformation->addStatic(Scale(scale));
+
+    DrawableObject* object = createObject(exportModel(name), phongProgram, transformation);
+    object->setMaterial(material);
+    object->setKind(kind);
+    scene->add(object);
+    return object;
+}
+
+void Application::addCoin(Scene* scene, const glm::vec3& position, float scale, int type) {
+    static const char* COINS[] = {"coin_gold", "coin_silver", "coin_copper"};
+
+    Material shiny;
+    shiny.ambient = glm::vec3(0.35f);
+    shiny.specular = glm::vec3(0.9f);
+    shiny.shininess = 64.0f;
+
+    TransformationComposite* transformation = makeComposite(scene);
+    transformation->addStatic(Translate(position));
+    transformation->addDynamic(make<DynamicRotate>(90.0f, glm::vec3(0.0f, 1.0f, 0.0f)));
+    transformation->addStatic(Scale(scale));
+
+    DrawableObject* coin = createObject(exportModel(COINS[type % 3]), phongProgram, transformation);
+    coin->setMaterial(shiny);
+    coin->setKind(DrawableObject::Kind::Collectible);
+    scene->add(coin);
+    ++collectibleTotal;
+}
+
+void Application::addNatureProps(Scene* scene, const Material& material, const glm::vec3& offset) {
+    addExportModel(scene, "fox_stand", offset + glm::vec3(2.5f, 0.0f, 11.0f), -25.0f, 1.0f, material);
+    addExportModel(scene, "fox_leap", offset + glm::vec3(-3.5f, 0.0f, 8.5f), 70.0f, 1.0f, material);
+    addExportModel(scene, "stump", offset + glm::vec3(5.0f, 0.0f, 7.0f), 0.0f, 1.0f, material);
+    addExportModel(scene, "stump", offset + glm::vec3(-6.0f, 0.0f, 13.5f), 120.0f, 1.2f, material);
+    addExportModel(scene, "mushrooms", offset + glm::vec3(5.6f, 0.0f, 7.8f), 30.0f, 1.0f, material);
+    addExportModel(scene, "mushrooms", offset + glm::vec3(-2.0f, 0.0f, 13.0f), 200.0f, 1.0f, material);
+    addExportModel(scene, "rock_small", offset + glm::vec3(1.5f, 0.0f, 14.5f), 40.0f, 1.0f, material);
+    addExportModel(scene, "rock_mossy", offset + glm::vec3(-8.0f, 0.0f, 4.0f), 15.0f, 1.0f, material);
+    addExportModel(scene, "boulder", offset + glm::vec3(9.0f, 0.0f, 3.0f), 60.0f, 1.0f, material);
+
+    for (int i = 0; i < 4; ++i) {
+        addExportModel(scene, "fence", offset + glm::vec3(-9.0f + 2.0f * i, 0.0f, 2.0f), 0.0f, 1.0f, material);
+    }
+    addExportModel(scene, "signpost", offset + glm::vec3(0.5f, 0.0f, 15.0f), 0.0f, 1.0f, material);
+}
+
 Bounds Application::loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material, DrawableObject::Kind kind, bool useBase, std::vector<DrawableObject*>* created) {
-    LoadedModel loaded = ModelLoader::load(path);
+    const CachedModel& loaded = getCachedModel(path);
     const glm::vec3 size = loaded.boundsMax - loaded.boundsMin;
 
     TransformationComposite* transformation = useBase ? makeComposite(scene) : make<TransformationComposite>();
@@ -517,9 +623,8 @@ Bounds Application::loadObject(Scene* scene, const std::string& path, const glm:
         transformation->addStatic(Translate(-baseCenter));
     }
 
-    for (ModelPart& part : loaded.parts) {
-        Model* model = part.model.get();
-        models.push_back(std::move(part.model));
+    for (const CachedModelPart& part : loaded.parts) {
+        Model* model = part.model;
         DrawableObject* object = createObject(model, program, transformation);
         object->setMaterial(material);
         object->setKind(kind);
@@ -607,6 +712,7 @@ void Application::createClassroomScene() {
     const glm::vec3 center = (room.min + room.max) * 0.5f;
 
     loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(room.min.x + 0.9f, room.min.y, center.z - 1.8f), 90.0f, 1.8f, phongProgram, material);
+    addExportModel(scene, "fox_stand", glm::vec3(room.min.x + 1.0f, room.min.y, center.z - 0.9f), 90.0f, 1.0f, material);
 
     scene->getLight()->setPosition(glm::vec3(center.x, std::min(room.max.y - 0.3f, room.min.y + 2.6f), center.z));
     scene->getLight()->setAttenuation(1.0f, 0.045f, 0.0075f);
@@ -623,15 +729,45 @@ void Application::createTerrainScene() {
     scene->getLight()->setPosition(glm::vec3(20.0f, 60.0f, 30.0f));
     scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
     scene->getCamera()->setSpeed(8.0f);
-    scene->getCamera()->setPosition(glm::vec3(0.0f, 22.0f, 38.0f), 112.0f, -90.0f);
+    scene->getCamera()->setPosition(glm::vec3(0.0f, 7.0f, 42.0f), 100.0f, -90.0f);
 
     Material material;
     material.ambient = glm::vec3(0.3f);
     material.specular = glm::vec3(0.05f);
     material.shininess = 8.0f;
 
-    loadObject(scene, pathOrPlaceholder("assets/teren/teren.obj", "assets/test/test_a.obj"), glm::vec3(0.0f), 0.0f, 15.0f, phongProgram, material,
-               DrawableObject::Kind::Ground);
+    loadObject(scene, pathOrPlaceholder("assets/zpg_export/terrain.obj", "assets/test/test_a.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material, DrawableObject::Kind::Ground);
+
+    Material props;
+    props.ambient = glm::vec3(0.3f);
+    props.specular = glm::vec3(0.2f);
+    props.shininess = 16.0f;
+    addExportModel(scene, "fox_stand", glm::vec3(4.0f, 1.30f, 18.0f), -30.0f, 1.5f, props);
+    addExportModel(scene, "fox_leap", glm::vec3(-2.0f, 1.66f, 18.0f), 60.0f, 1.5f, props);
+    addExportModel(scene, "stump", glm::vec3(8.0f, 1.15f, 15.0f), 0.0f, 1.5f, props);
+    addExportModel(scene, "mushrooms", glm::vec3(8.9f, 1.19f, 15.9f), 40.0f, 1.5f, props);
+    addExportModel(scene, "stump", glm::vec3(-6.0f, 1.83f, 22.0f), 90.0f, 1.5f, props);
+    addExportModel(scene, "mushrooms", glm::vec3(-4.0f, 1.60f, 14.0f), 0.0f, 1.5f, props);
+    addExportModel(scene, "rock_mossy", glm::vec3(3.0f, 1.35f, 10.0f), 20.0f, 1.5f, props);
+    addExportModel(scene, "boulder", glm::vec3(-10.0f, 2.44f, 12.0f), 70.0f, 1.5f, props);
+    addExportModel(scene, "rock_small", glm::vec3(5.0f, 1.40f, 25.0f), 0.0f, 1.5f, props);
+    addExportModel(scene, "signpost", glm::vec3(0.0f, 1.49f, 20.0f), 0.0f, 1.5f, props);
+    for (int i = 0; i < 3; ++i) {
+        addExportModel(scene, "fence", glm::vec3(-3.0f + 2.0f * i, 1.03f, 28.0f), 0.0f, 1.0f, props);
+    }
+
+    const glm::vec3 COIN_POSITIONS[] = {
+        glm::vec3(24.368f, 12.697f, 72.996f), glm::vec3(13.943f, 7.143f, 44.047f), glm::vec3(40.287f, 8.853f, 37.809f),
+        glm::vec3(-12.804f, 3.737f, 7.835f), glm::vec3(72.850f, 18.079f, -62.704f), glm::vec3(-35.419f, 5.140f, 35.435f),
+        glm::vec3(-12.480f, 5.144f, 79.348f), glm::vec3(54.113f, 7.441f, -5.621f), glm::vec3(-2.322f, 4.245f, -71.220f),
+        glm::vec3(79.661f, 12.920f, 74.598f), glm::vec3(-61.030f, 15.174f, -41.792f), glm::vec3(-31.997f, 5.113f, -8.167f),
+        glm::vec3(-71.901f, 5.410f, 7.845f), glm::vec3(8.867f, 8.137f, 60.933f), glm::vec3(-31.366f, 4.172f, 13.146f),
+    };
+    int type = 0;
+    for (const glm::vec3& position : COIN_POSITIONS) {
+        addCoin(scene, position, 0.6f, type++);
+    }
+
     addSignature(scene);
 }
 
@@ -722,7 +858,7 @@ void Application::printHelp() const {
         "F10         reset scene move / spin / zoom (arrows, + -, R)\n"
         "Sh+F10      remove objects inserted by clicks in this scene\n"
         "F11         fullscreen on/off\n"
-        "F12         print current settings\n"
+        "I           print current settings (F12 is the Windows debugger break key)\n"
         "WASD, E/Q, right mouse   camera\n"
         "left mouse  select / insert / path point (by mode)\n"
         "Esc         quit" << std::endl;
@@ -891,7 +1027,7 @@ void Application::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int
     case GLFW_KEY_F9: app->switchScene(dir); return;
     case GLFW_KEY_F10: if (shift) app->removeInsertedObjects(); else app->resetSceneControls(); return;
     case GLFW_KEY_F11: app->toggleFullscreen(); return;
-    case GLFW_KEY_F12: app->printStatus(); return;
+    case GLFW_KEY_I: app->printStatus(); return;
 
     case GLFW_KEY_C: app->spheresProgramIndex = 0; app->setSpheresProgram(app->constantProgram, "constant"); return;
     case GLFW_KEY_L: app->spheresProgramIndex = 1; app->setSpheresProgram(app->lambertProgram, "Lambert"); return;
@@ -1025,10 +1161,10 @@ void Application::handleClick() {
         }
         else if (object->getKind() == DrawableObject::Kind::Moving) {
             std::cout << "Pohybujici se objekt " << index << " odstranen" << std::endl;
-            scene->remove(object);
+            removeObject(scene, object);
         }
         else if (object->getKind() == DrawableObject::Kind::Collectible) {
-            scene->remove(object);
+            removeObject(scene, object);
             ++collected;
             std::cout << "Sebrano " << collected << " / " << collectibleTotal << std::endl;
         }
@@ -1107,26 +1243,61 @@ void Application::insertModel(Scene* scene, const glm::vec3& position) {
 }
 
 void Application::addMovingObject(Scene* scene, const glm::vec3& a, const glm::vec3& b) {
-    const float radius = scene == terrainScene ? 1.0f : 0.3f;
-    const float speed = scene == terrainScene ? 6.0f : 2.0f;
-    const glm::vec3 lift(0.0f, radius, 0.0f);
+    float size = 2.0f;
+    float speed = 2.0f;
+    if (scene == terrainScene) {
+        size = 6.0f;
+        speed = 6.0f;
+    }
+    else if (scene == classroomScene) {
+        size = 1.0f;
+    }
+    const glm::vec3 lift(0.0f, 0.25f * size, 0.0f);
 
-    TransformationComposite* transformation = make<TransformationComposite>();
-    transformation->addDynamic(make<LineMove>(a + lift, b + lift, speed));
-    transformation->addStatic(Scale(radius));
+    TransformationComposite* bee = make<TransformationComposite>();
+    bee->addDynamic(make<LineMove>(a + lift, b + lift, speed, true));
+    bee->addStatic(Scale(size));
 
-    DrawableObject* sphereObject = createObject(sphereModel, phongProgram, transformation);
-    sphereObject->setColor(glm::vec3(1.0f, 0.5f, 0.1f));
-    Material material; 
-    material.ambient = glm::vec3(0.6f);
-    material.diffuse = glm::vec3(0.6f);
-    material.specular = glm::vec3(0.5f);
+    Material material;
+    material.ambient = glm::vec3(0.4f);
+    material.specular = glm::vec3(0.4f);
     material.shininess = 32.0f;
-    sphereObject->setMaterial(material);
-    sphereObject->setKind(DrawableObject::Kind::Moving);
-    scene->add(sphereObject);
-    insertedObjects.emplace_back(scene, sphereObject);
-    std::cout << "Moving object " << sphereObject->getId() << " created" << std::endl;
+
+    DrawableObject* body = createObject(exportModel("bumblebee_body"), phongProgram, bee);
+    std::vector<DrawableObject*> group = {body};
+
+    const glm::vec3 joints[] = {glm::vec3(0.040f, 0.055f, 0.030f), glm::vec3(-0.040f, 0.055f, 0.030f)};
+    const char* wings[] = {"bumblebee_wing_right", "bumblebee_wing_left"};
+    const float amplitudes[] = {35.0f, -35.0f};
+    for (int i = 0; i < 2; ++i) {
+        TransformationComposite* wing = make<TransformationComposite>();
+        wing->addDynamic(bee);
+        wing->addStatic(Translate(joints[i]));
+        wing->addDynamic(make<Oscillate>(amplitudes[i], 8.0f, glm::vec3(0.0f, 0.0f, 1.0f)));
+        group.push_back(createObject(exportModel(wings[i]), phongProgram, wing));
+    }
+
+    for (DrawableObject* part : group) {
+        part->setMaterial(material);
+        part->setKind(DrawableObject::Kind::Moving);
+        scene->add(part);
+        insertedObjects.emplace_back(scene, part);
+    }
+    objectGroups.push_back(group);
+    std::cout << "Moving object (bumblebee) " << body->getId() << " created" << std::endl;
+}
+
+void Application::removeObject(Scene* scene, DrawableObject* object) {
+    for (auto it = objectGroups.begin(); it != objectGroups.end(); ++it) {
+        if (std::find(it->begin(), it->end(), object) != it->end()) {
+            for (DrawableObject* part : *it) {
+                scene->remove(part);
+            }
+            objectGroups.erase(it);
+            return;
+        }
+    }
+    scene->remove(object);
 }
 
 void Application::addCollectibles(Scene* scene) {
@@ -1136,15 +1307,10 @@ void Application::addCollectibles(Scene* scene) {
 
     const int COUNT = 10;
     for (int i = 0; i < COUNT; ++i) {
-        TransformationComposite* transformation = makeComposite(scene);
-        transformation->addStatic(Translate(glm::vec3(x(generator), 0.35f, z(generator))));
-        transformation->addStatic(Scale(0.25f));
-        DrawableObject* coin = createObject(sphereModel, constantProgram, transformation);
-        coin->setColor(glm::vec3(1.0f, 0.8f, 0.1f));
-        coin->setKind(DrawableObject::Kind::Collectible);
-        scene->add(coin);
+        const float coinX = x(generator);
+        const float coinZ = z(generator);
+        addCoin(scene, glm::vec3(coinX, 0.4f, coinZ), 0.3f, i);
     }
-    collectibleTotal += COUNT;
 }
 
 void Application::updateClock() {
@@ -1266,6 +1432,7 @@ void Application::releaseResources() {
     
     objects.clear();
     transformations.clear();
+    modelCache.clear();
     models.clear();
     shaderPrograms.clear();
     cameraPrograms.clear();

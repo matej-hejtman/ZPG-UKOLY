@@ -57,7 +57,7 @@ cmake -B build && cmake --build build
 Všechny cesty jsou relativní k `${CMAKE_SOURCE_DIR}`, složka `assets/` se po buildu kopíruje i vedle `.exe`.
 
 ## Ovládání (cvičení 9)
-Všechna nastavení jsou na **F1–F12**, Shift = opačný směr / druhá akce. Původní písmena z dřívějších cvičení (v závorce) fungují dál.
+Všechna nastavení jsou na **F1–F11** a **I**, Shift = opačný směr / druhá akce. Původní písmena z dřívějších cvičení (v závorce) fungují dál.
 
 | Klávesa | Nastavení |
 |---|---|
@@ -73,7 +73,7 @@ Všechna nastavení jsou na **F1–F12**, Shift = opačný směr / druhá akce. 
 | F10 | vrátit posun / otočení / zoom scény do výchozího stavu |
 | Shift+F10 | smazat objekty vložené kliknutím v aktivní scéně (stromy, Shrekové, koule) |
 | F11 | celá obrazovka zap/vyp |
-| F12 | vypíše aktuální nastavení (scéna, režim, vložené objekty, sebrané mince, FOV, normály…) |
+| I | vypíše aktuální nastavení (dříve F12 – na Windows F12 s debuggerem zastaví program) (scéna, režim, vložené objekty, sebrané mince, FOV, normály…) |
 
 | Vstup | Akce |
 |---|---|

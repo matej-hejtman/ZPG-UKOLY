@@ -1,0 +1,19 @@
+// Pozice minci v souradnicich OpenGL pro terrain.obj (bez dalsiho Scale/Translate terenu).
+// Pokud teren ve scene zmensis/posunes, aplikuj stejnou transformaci i na tyto body.
+const glm::vec3 COIN_POSITIONS[] = {
+    glm::vec3(24.368f, 12.697f, 72.996f),
+    glm::vec3(13.943f, 7.143f, 44.047f),
+    glm::vec3(40.287f, 8.853f, 37.809f),
+    glm::vec3(-12.804f, 3.737f, 7.835f),
+    glm::vec3(72.850f, 18.079f, -62.704f),
+    glm::vec3(-35.419f, 5.140f, 35.435f),
+    glm::vec3(-12.480f, 5.144f, 79.348f),
+    glm::vec3(54.113f, 7.441f, -5.621f),
+    glm::vec3(-2.322f, 4.245f, -71.220f),
+    glm::vec3(79.661f, 12.920f, 74.598f),
+    glm::vec3(-61.030f, 15.174f, -41.792f),
+    glm::vec3(-31.997f, 5.113f, -8.167f),
+    glm::vec3(-71.901f, 5.410f, 7.845f),
+    glm::vec3(8.867f, 8.137f, 60.933f),
+    glm::vec3(-31.366f, 4.172f, 13.146f),
+};

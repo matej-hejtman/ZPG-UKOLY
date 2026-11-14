@@ -22,5 +22,5 @@ struct LoadedModel {
 
 class ModelLoader {
 public:
-    static LoadedModel load(const std::string& path);
+    static LoadedModel load(const std::string& path, bool mergeColors = false);
 };
