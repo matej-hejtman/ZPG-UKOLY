@@ -21,26 +21,57 @@ public:
 
     void add(DrawableObject* object);
     void addStatic(DrawableObject* object);
+    bool remove(DrawableObject* object);
+    DrawableObject* getObjectById(unsigned id) const;
 
-    Camera* getCamera() { return &camera; }
-    Light* getLight() { return &light; }
+    Camera* getCamera() { 
+        return &camera; 
+    }
+
+    Light* getLight() { 
+        return &light; 
+    }
+
     void addLitProgram(ShaderProgram* program);
-    void setLightTransformation(Transformation* transformation) { lightTransformation = transformation; }
+    void setLightTransformation(Transformation* transformation) { 
+        lightTransformation = transformation; 
+    }
 
-    void setSkybox(Skybox* value) { skybox = value; }
+    void setSkybox(Skybox* value) { 
+        skybox = value; 
+    }
 
-    void setClearColor(const glm::vec3& value) { clearColor = value; }
-    const glm::vec3& getClearColor() const { return clearColor; }
-    TransformationComposite* getBase() { return &base; }
-    Translate& getMove() { return controlMove; }
-    Rotate& getSpin() { return controlSpin; }
-    Scale& getZoom() { return controlZoom; }
+    void setClearColor(const glm::vec3& value) { 
+        clearColor = value; 
+    }
+
+    const glm::vec3& getClearColor() const { 
+        return clearColor; 
+    }
+
+    TransformationComposite* getBase() { 
+        return &base; 
+    }
+
+    Translate& getMove() { 
+        return controlMove; 
+    }
+
+    Rotate& getSpin() { 
+        return controlSpin; 
+    }
+
+    Scale& getZoom() { 
+        return controlZoom; 
+    }
 
     void draw() const;
 
 private:
     std::vector<DrawableObject*> objects;
     std::vector<DrawableObject*> staticObjects;
+    unsigned nextId = 1;
+    std::vector<unsigned> freeIds;
 
     Camera camera;
     Light light;

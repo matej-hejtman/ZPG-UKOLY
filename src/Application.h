@@ -1,5 +1,7 @@
 // Author: Matt Hejtman, login: HEJ0094
 #pragma once
+#include "DrawableObject.h"
+
 #include <glm/glm.hpp>
 
 #include <memory>
@@ -10,7 +12,6 @@
 struct GLFWwindow;
 class ShaderProgram;
 class Model;
-class DrawableObject;
 class Scene;
 class Transformation;
 class TransformationComposite;
@@ -40,14 +41,23 @@ private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void cursorPositionCallback(GLFWwindow* window, double x, double y);
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+
+    enum class InteractionMode { Select, Insert, Path };
+    static const char* modeName(InteractionMode mode);
+    void handleClick();
+    void selectObject(DrawableObject* object);
+    void clearInteraction();
+    void insertModel(Scene* scene, const glm::vec3& position);
+    void addMovingObject(Scene* scene, const glm::vec3& a, const glm::vec3& b);
+    void addCollectibles(Scene* scene);
 
     void processInput(float deltaTime);
     void updateClock();
     void activateScene(std::size_t index);
 
     template <class T, class... Args>
-    T* make(Args&&... args)
-    {
+    T* make(Args&&... args) {
         auto owned = std::make_unique<T>(std::forward<Args>(args)...);
         T* pointer = owned.get();
         transformations.push_back(std::move(owned));
@@ -75,11 +85,28 @@ private:
     void createShrekScene();
     void createTextureScene();
     void createClassroomScene();
+    void createTerrainScene();
 
     static std::string pathOrPlaceholder(const std::string& path, const std::string& placeholder);
-    Bounds loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material);
+    Bounds loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material,
+                      DrawableObject::Kind kind = DrawableObject::Kind::Normal, bool useBase = true,
+                      std::vector<DrawableObject*>* created = nullptr);
     Skybox* getSkybox();
     void setSpheresProgram(ShaderProgram* program, const char* name);
+
+    void printHelp() const;
+    void printStatus() const;
+    void cycleMode(int step);
+    void cycleSpheresProgram(int step);
+    void cycleFov(int step);
+    void cycleNormalMode(int step);
+    void toggleBackSpecular();
+    void toggleCorrectResize();
+    void toggleUvTest();
+    void switchScene(int step);
+    void resetSceneControls();
+    void removeInsertedObjects();
+    void toggleFullscreen();
 
     void releaseResources();
 
@@ -135,4 +162,22 @@ private:
     std::vector<std::unique_ptr<CubeMap>> cubeMaps;
     std::vector<std::unique_ptr<Skybox>> skyboxes;
     std::size_t activeScene = 0;
+
+    InteractionMode interactionMode = InteractionMode::Select;
+    bool clickPending = false;
+    double clickX = 0.0;
+    double clickY = 0.0;
+    bool hasPathStart = false;
+    glm::vec3 pathStart = glm::vec3(0.0f);
+    DrawableObject* selectedObject = nullptr;
+    glm::vec3 selectedOriginalColor = glm::vec3(1.0f);
+    Scene* nightForestScene = nullptr;
+    Scene* classroomScene = nullptr;
+    Scene* terrainScene = nullptr;
+    std::vector<std::pair<Scene*, DrawableObject*>> insertedObjects;
+    std::size_t spheresProgramIndex = 2;
+    bool fullscreen = false;
+    int windowedX = 100, windowedY = 100, windowedWidth = 800, windowedHeight = 600;
+    int collected = 0;
+    int collectibleTotal = 0;
 };

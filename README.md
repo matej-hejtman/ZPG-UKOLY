@@ -8,7 +8,7 @@ OpenGL 3.3 core, GLFW, GLAD (glad2, header-only), GLM. Build přes CMake. Podrob
 CMakeLists.txt  cíle ZPG (aplikace) a composite_test (samostatný test kompozitu)
 src/            Application, Shader, ShaderProgram, Model, DrawableObject, Scene, Camera,
                 ICameraObserver, Light, Material, CustomMatrix, Transformation (abstraktní), Translate, Rotate, Scale,
-                DynamicRotate, TransformationComposite, Texture, TextureManager, CubeMap, Skybox, ModelLoader,
+                DynamicRotate, LineMove, GrowScale, TransformationComposite, Texture, TextureManager, CubeMap, Skybox, ModelLoader,
                 BasicModels.h, main.cpp
 tests/          composite_test.cpp
 assets/shaders/ model.vert, foliage.vert, clock.vert, lit.vert, litFoliage.vert, color.frag, normal.frag,
@@ -19,6 +19,7 @@ assets/models/  přiložené modely (needitováno) + login.h (login z Blenderu s
 assets/shrek/   Shrek, Fiona, toaleta (OBJ + MTL + textury)
 assets/skybox/  cubemap/ = 6 obrázků oblohy (posx … negz)
 assets/EB408/   EB408.blend (z LMS), eb408.obj + MTL + textury (sestavená učebna)
+assets/teren/   teren.obj + MTL + grass.png (terén z LMS, teren.zip)
 assets/textures/ whiteboard_zpg.png (vlastní obsah tabule)
 assets/test/    testovací textury (šachovnice, dřevo, náhradní skybox)
 assets/Texture/ wooden_fence.png (podlaha ve scéně 12) + vzorový projekt k texturám
@@ -27,36 +28,79 @@ tools/          convert_login.py (login.h 9 floatů → loginModel.h 6 floatů),
 docs/           class_diagram.png
 libs/glad/      GLAD 2 (GL 3.3 core)
 libs/glm/       GLM 1.0.1
-libs/glfw/      (jen Windows) include/ + lib-vc2022/glfw3.lib
-screenshots/    cv1-2/, cv3/, cv4/, cv5/, cv6/, cv7/, cv8/
+libs/stb/       stb_image.h
+libs/glfw/      GLFW 3.4 (zdrojáky, kompiluje se s projektem)
+libs/assimp/    Assimp 5.4.3 (zdrojáky bez testů, kompiluje se s projektem, jen OBJ import)
+.vscode/        nastavení pro VS Code (CMake Tools, spuštění F5)
+screenshots/    cv1-2/, cv3/, cv4/, cv5/, cv6/, cv7/, cv8/, cv9/
 ```
 
 ## Build
-**Linux:** `sudo apt install libglfw3-dev libassimp-dev`, potom
+Všechny knihovny jsou v `libs/` jako zdrojáky a CMake je zkompiluje spolu s projektem.
+**Nic se nestahuje ani neinstaluje.** Potřeba je jen kompilátor C++ (MSVC / GCC / Clang) a CMake ≥ 3.16.
+První build trvá kvůli Assimpu chvilku déle, další už jsou rychlé.
+
+**VS Code (Windows i Linux):**
+1. Otevřít složku projektu (*File → Open Folder*).
+2. Nainstalovat doporučená rozšíření, která VS Code nabídne (C/C++ a CMake Tools).
+3. Při dotazu na kit vybrat kompilátor (na Windows *Visual Studio … amd64*).
+4. **F5** = build + spuštění v debuggeru (konfigurace *ZPG (Windows / MSVC)* nebo *ZPG (Linux / GDB)*),
+   nebo tlačítko ▶ ve spodní liště CMake Tools.
+
+**Visual Studio:** *File → Open → Folder*, spustit cíl `ZPG`.
+
+**Příkazová řádka:**
 ```
 cmake -B build && cmake --build build
 ./build/ZPG
-./build/composite_test   # samostatný test kompozitu
 ```
-**Windows / Visual Studio:** prebuilt GLFW (64-bit) → `include/` a `lib-vc2022/` do `libs/glfw/`. Ve VS *File → Open → Folder*, spustit cíl `ZPG`. Všechny cesty jsou relativní k `${CMAKE_SOURCE_DIR}` (ekvivalent `$(SolutionDir)`).
+Všechny cesty jsou relativní k `${CMAKE_SOURCE_DIR}`, složka `assets/` se po buildu kopíruje i vedle `.exe`.
 
-## Ovládání (cvičení 8)
+## Ovládání (cvičení 9)
+Všechna nastavení jsou na **F1–F12**, Shift = opačný směr / druhá akce. Původní písmena z dřívějších cvičení (v závorce) fungují dál.
+
+| Klávesa | Nastavení |
+|---|---|
+| F1 | nápověda: vypíše ovládání do konzole |
+| F2 / Shift+F2 | režim levého tlačítka: select → insert → path / zpět (M) |
+| F3 / Shift+F3 | osvětlení čtyř koulí ve scéně 7: konstantní → Lambert → Phong → Blinn-Phong / zpět (C / L / P / B přímo) |
+| F4 / Shift+F4 | zorný úhel 30–170°: větší / menší (F) |
+| F5 / Shift+F5 | převod normál: 0 bez transformace → 1 modelová matice → 2 normálová matice / zpět (N) |
+| F6 | ořezání odlesku na odvrácené straně (Phong) zap/vyp (O) |
+| F7 | změna okna mění i aspect (správně) / jen viewport (roztažené) (V) |
+| F8 | UV test: texturovací souřadnice jako barva (červená = u, zelená = v) (U) |
+| F9 / Shift+F9 | další / předchozí scéna (TAB / Shift+TAB) |
+| F10 | vrátit posun / otočení / zoom scény do výchozího stavu |
+| Shift+F10 | smazat objekty vložené kliknutím v aktivní scéně (stromy, Shrekové, koule) |
+| F11 | celá obrazovka zap/vyp |
+| F12 | vypíše aktuální nastavení (scéna, režim, vložené objekty, sebrané mince, FOV, normály…) |
+
 | Vstup | Akce |
 |---|---|
 | 1–9, 0 | scéna: 1 les, 2 hodiny, 3 sluneční soustava, 4 pořadí T·R / R·T, 5 modelová matice, 6 login, 7 čtyři koule, 8 normály + test w = 5, 9 odlesk na odvrácené straně, 0 noční les |
-| TAB / Shift+TAB | další / předchozí scéna, i scény bez číselné klávesy: 11 Shrek, 12 Shrek + Fiona + toaleta, 13 učebna EB408 |
-| U | UV test: texturovací souřadnice jako barva (červená = u, zelená = v) |
-| N | převod normál: 0 bez transformace → 1 modelová matice → 2 normálová matice (výpis do konzole) |
-| O | ořezání odlesku na odvrácené straně (Phong) zap/vyp |
-| V | změna okna mění i aspect (správně) / jen viewport (roztažené) |
-| C / L / P / B | osvětlení čtyř koulí: konstantní / Lambert / Phong / Blinn-Phong |
-| F | další zorný úhel (30–170°) |
+| F9 / TAB | i scény bez číselné klávesy: 11 Shrek, 12 Shrek + Fiona + toaleta, 13 učebna EB408, 14 terén |
+| levé tlačítko myši | podle režimu: výběr objektu / vložení modelu na zem / bod trasy (výpis pixelu a unProject do konzole) |
 | W / S / A / D, pravé tlačítko myši | pohyb a rozhlížení kamery |
 | E / Q | kamera nahoru / dolů (po svislé ose y) |
+| Shift + W / S / A / D / E / Q | kamera 3× rychleji |
 | ← → ↑ ↓, `+` / `−`, R | posun / zoom / otočení celé scény (i se světlem) |
 | Esc | konec |
 
 > České rozložení: `+` je na stejné fyzické klávese jako `1`, proto zoom používá numerickou klávesnici.
+
+## Souhrn – cvičení 9
+Screenshoty jsou v `screenshots/cv9/` (pod obrazem je výpis z konzole k danému úkolu). Picking funguje ve všech scénách, vkládání v lese (1), nočním lese (0), učebně (13) a na terénu z LMS (14).
+
+| Úkol | Stav | Řešení v kódu | Teorie |
+|---|---|---|---|
+| 1a | Splněno | `DrawableObject` má `id` (0–255) a druh `Kind { Normal, Ground, Collectible, Moving }`. `Scene::add` přidělí další volné ID (od 1, uvolněná ID z `remove` se použijí znovu, nad 255 → 0 a varování). V `draw()` těsně před `model->draw()` `glStencilFunc(GL_ALWAYS, id, 0xFF)`, skybox a podpis mají 0. Okno `GLFW_STENCIL_BITS 8`, `glEnable(GL_STENCIL_TEST)`, `glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)`, `glClear` maže i stencil. `HEJ0094_1a.png` | Stencil buffer drží pro každý pixel 8bitové číslo. `GL_REPLACE` jen při třetím případu (prošel stencil i hloubka), takže v pixelu zůstane ID objektu, který je opravdu vidět. 0 = pozadí, proto nejvýš 255 objektů. |
+| 1b | Splněno | `glfwSetMouseButtonCallback`: levé tlačítko jen uloží pozici. V `run()` po vykreslení a **před** `glfwSwapBuffers` `handleClick()`: přepočet na pixely framebufferu, `newy = h − 1 − y`, 3× `glReadPixels` (RGBA, `GL_DEPTH_COMPONENT`, `GL_STENCIL_INDEX`), `scene->getObjectById` a zvýraznění `objectColor × (1; 0,4; 0,4)`. `HEJ0094_1b.png` | GLFW má počátek kurzoru vlevo nahoře, framebuffer vlevo dole. Po prohození bufferů je obsah zadního bufferu nedefinovaný, proto se čte ve stejném snímku. |
+| 2a | Splněno | Při hloubce < 1 `glm::unProject(vec3(x, newy, depth), view, projection, vec4(0, 0, w, h))`, výpis `unProject [x, y, z]`. Klik na zem dává y ≈ 0. `HEJ0094_2a.png` | unProject jde řetězcem pozpátku: okno → NDC (×2 − 1) → (P·V)⁻¹ → dělení w. Hloubka 1 = nic pod kurzorem (obloha), bod neexistuje. |
+| 2b | Splněno | Režim insert (M): klik na objekt druhu `Ground` vloží strom: kompozit **bez** `base` scény, `Translate(pos)` + náhodná `Rotate` kolem y + `GrowScale` (strom za 2 s vyroste z 0). V učebně Shrek přes `loadObject(..., useBase = false)`. Na terénu (scéna 14, `teren.obj` z LMS, `Ground`) stromy stojí na svazích v různé výšce. `HEJ0094_2b.png`, `HEJ0094_2b_teren.png` | Bod z unProject je ve světových souřadnicích. Se sdíleným `base` by se po posunu scény šipkami objekt objevil jinde, než kam se kliklo. |
+| 3a | Splněno | Režim path: 1. klik = A, 2. klik = B. List `LineMove(A, B, 2 m/s)`: `s = v·(čas − start)/|B − A|`, `t = 1 − |1 − (s mod 2)|`, `X = (1 − t)·A + t·B`. Oranžová koule [LineMove, Scale 0,3], druh `Moving`. `HEJ0094_3a.png` | Parametrická úsečka X(t) = A + (B − A)·t, t ∈ ⟨0, 1⟩: t = 0 → A, 0,5 → střed, 1 → B. Dělení délkou úsečky převádí rychlost v jednotkách za sekundu na rychlost parametru, takže krátká i dlouhá trasa se jede stejně rychle. |
+| 3b | Splněno | V režimu select klik na `Moving` → `scene->remove`, výpis „Pohybujici se objekt X odstranen“. Navíc 10 zlatých koulí `Collectible` v lese, po kliknutí zmizí („Sebrano k / 10“). `HEJ0094_3b.png` | ID se čte ze snímku, který je právě vykreslený, takže sedí i na objekt, který se pohybuje. |
+| 3c | Splněno | `enum class InteractionMode { Select, Insert, Path }`, F2 (Shift+F2 zpět) nebo M dokola, výpis `Mode: ...`. Přepnutí režimu zahodí rozpracovaný bod A, přepnutí scény i výběr. `HEJ0094_3c.png` | |
+| 3d | Splněno | Les (scéna 1, zem `Ground`) i učebna EB408 (scéna 13, místnost načtená jako `Ground`, takže se dá vkládat na podlahu i stoly). `HEJ0094_2b.png`, `HEJ0094_3d.png` (Shrekové na podlaze a na stole, koule na trase) | |
 
 ## Souhrn – cvičení 8
 Screenshoty jsou v `screenshots/cv8/`.

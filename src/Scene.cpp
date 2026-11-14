@@ -4,6 +4,9 @@
 #include "ShaderProgram.h"
 #include "Skybox.h"
 
+#include <algorithm>
+#include <iostream>
+
 Scene::Scene() {
     base.addDynamic(&controlMove);
     base.addDynamic(&controlSpin);
@@ -11,7 +14,48 @@ Scene::Scene() {
 }
 
 void Scene::add(DrawableObject* object) {
+    unsigned id = 0;
+    if (!freeIds.empty()) {
+        id = freeIds.back();
+        freeIds.pop_back();
+    } else if (nextId <= 255) {
+        id = nextId++;
+    } else {
+        std::cerr << "WARNING: scene has more than 255 objects, new object is not selectable" << std::endl;
+    }
+
+    object->setId(id);
     objects.push_back(object);
+}
+
+bool Scene::remove(DrawableObject* object) {
+    auto it = std::find(objects.begin(), objects.end(), object);
+    
+    if (it == objects.end()) {
+        return false;
+    }
+
+    objects.erase(it);
+    
+    if (object->getId() != 0) {
+        freeIds.push_back(object->getId());
+    }
+    
+    object->setId(0);
+    return true;
+}
+
+DrawableObject* Scene::getObjectById(unsigned id) const {
+    if (id == 0) {
+        return nullptr;
+    }
+
+    for (DrawableObject* object : objects) {
+        if (object->getId() == id) {
+            return object;
+        }
+    }
+    return nullptr;
 }
 
 void Scene::addLitProgram(ShaderProgram* program) {
@@ -22,9 +66,9 @@ void Scene::addStatic(DrawableObject* object) {
     staticObjects.push_back(object);
 }
 
-void Scene::draw() const
-{
+void Scene::draw() const {
     if (skybox) {
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
         skybox->draw();
     }
 

@@ -27,6 +27,7 @@ Tento dokument prochází **každý soubor projektu řádek po řádku**. U kaž
 19. [Cvičení 6: osvětlovací modely](#19-cvičení-6-osvětlovací-modely)
 20. [Cvičení 7: normálová matice, ukázky chyb, noční les](#20-cvičení-7-normálová-matice-ukázky-chyb-noční-les)
 21. [Cvičení 8: textury, skybox, učebna EB408](#21-cvičení-8-textury-skybox-učebna-eb408)
+22. [Cvičení 9: identifikace objektů, unProject, pohyb po úsečce](#22-cvičení-9-identifikace-objektů-unproject-pohyb-po-úsečce)
 
 ---
 
@@ -4799,3 +4800,236 @@ Známé varování překladače, které s cvičením 8 nesouvisí: v `plantFores
 - **Proč se cubemapa čte směrovým vektorem a ne UV?** Cubemapa představuje okolí viditelné ze středu ve všech směrech. GPU vybere stěnu podle největší složky směru a zbytek převede na souřadnice ve stěně. Pozice na krychli kolem počátku je přímo tento směr (21.9).
 - **Proč skybox nezakryje scénu a proč „nejde dohnat“?** Kreslí se první bez zápisu do z-bufferu, takže hloubka zůstane na maximu a každý další objekt se nakreslí přes něj. Ve view matici se zahodí posun (`mat4(mat3(viewMatrix))`), takže krychle je pořád kolem kamery a otáčí se jen s pohledem (21.9).
 - **Inverzní vs. přímé mapování textury.** Přímé mapování jde od textury k obrazu: každý texel se promítne na plochu a do pixelů. Pixely mohou zůstat prázdné nebo se překrývat. **Inverzní mapování** jde od pixelu k textuře: pro každý fragment se z interpolovaných UV zjistí, kam do textury sáhnout, a barva se dofiltruje. OpenGL používá inverzní mapování (`texture(sampler, uv)` ve fragment shaderu), takže každý pixel má právě jednu barvu.
+
+---
+
+## 22. Cvičení 9: identifikace objektů, unProject, pohyb po úsečce
+
+Cíl cvičení: po kliknutí zjistit, **na který objekt** uživatel klikl (ID ve stencil bufferu), a **kam do světa** klikl (hloubka ze z-bufferu + `glm::unProject`). Z toho vkládání modelů na místo kliknutí, model jezdící mezi dvěma kliknutými body a jeho smazání kliknutím. Režim levého tlačítka přepíná klávesa **M**.
+
+### 22.1 Přehled změn
+
+| Soubor | Změna |
+|---|---|
+| `DrawableObject.h/.cpp` | `id` (0–255), `enum class Kind { Normal, Ground, Collectible, Moving }`, `getColor()`, `kindName()`, v `draw()` `glStencilFunc(GL_ALWAYS, id, 0xFF)` |
+| `Scene.h/.cpp` | přidělování ID v `add()` (`nextId`, `freeIds`), `remove()`, `getObjectById()`, skybox kreslen s ID 0 |
+| `LineMove.h/.cpp` | **nový** list kompozitu: pohyb po úsečce AB tam a zpět |
+| `GrowScale.h/.cpp` | **nový** list kompozitu: měřítko roste od 0 do cíle (vkládané stromy) |
+| `Application.h/.cpp` | stencil v okně, `mouseButtonCallback`, `handleClick()`, režimy `InteractionMode`, klávesa M, `insertModel`, `addMovingObject`, `addCollectibles`, `loadObject(..., kind, useBase, created)`, scéna 14 `createTerrainScene`, nastavení na F1–F12 |
+| `assets/teren/` | terén z LMS (`teren.zip`): `teren.obj`, `teren.mtl`, `grass.png`, `teren.blend` |
+
+Nic z dřívějších cvičení se nepřepisuje. Scény jsou stejné, jen zem lesa, zem nočního lesa a místnost učebny mají druh `Ground` a v lese přibylo 10 zlatých koulí ke sbírání.
+
+---
+
+### 22.2 Stencil buffer v okně
+
+```cpp
+glfwWindowHint(GLFW_STENCIL_BITS, 8);           // před glfwCreateWindow
+...
+glEnable(GL_STENCIL_TEST);
+glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+...
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);   // v run()
+```
+
+GLFW má stencil 8 bitů i ve výchozím stavu, hint to jen zaručí. `glStencilOp` má tři argumenty pro tři situace: stencil test neprojde / stencil projde, ale neprojde hloubka / projde obojí. Hodnota se nahradí (`GL_REPLACE`) jen ve třetím případě. Fragment zakrytého objektu neprojde testem hloubky, takže jeho ID se nezapíše a v pixelu zůstane ID objektu, který je opravdu vidět.
+
+### 22.3 DrawableObject: ID a druh
+
+```cpp
+program->use();
+glStencilFunc(GL_ALWAYS, static_cast<GLint>(id), 0xFF);
+model->draw();
+```
+
+`GL_ALWAYS` = stencil test projde vždy, druhý argument je referenční hodnota, kterou `GL_REPLACE` zapíše, a `0xFF` je maska (všech 8 bitů). Druh objektu (`Kind`) říká, co se stane po kliknutí: na `Ground` se dá vkládat, `Moving` se smaže, `Collectible` se sebere.
+
+Podpis v rohu se přidává přes `Scene::addStatic`, ID nedostane a zůstane 0. Skybox nemá `DrawableObject`, proto `Scene::draw` před ním zavolá `glStencilFunc(GL_ALWAYS, 0, 0xFF)`. Klik na oblohu nebo podpis tedy vrátí 0 = nic.
+
+### 22.4 Scene: přidělování ID
+
+```cpp
+void Scene::add(DrawableObject* object) {
+    unsigned id = 0;
+    if (!freeIds.empty()) { id = freeIds.back(); freeIds.pop_back(); }
+    else if (nextId <= 255) { id = nextId++; }
+    else { std::cerr << "WARNING: ... not selectable" << std::endl; }
+    object->setId(id);
+    objects.push_back(object);
+}
+```
+
+ID 0 je pozadí, objekty mají 1–255. `remove()` objekt vyjme ze seznamu (vlastníkem zůstává `Application::objects`, takže ukazatele nikde nevisí) a jeho ID vrátí do `freeIds`. Smazané koule a sebrané mince tak uvolní místo pro další vkládané stromy. Les: 1 zem + 140 stromů a keřů + 10 mincí + 3 hodiny = 154 ID, na vkládání zbývá přes 100. `getObjectById()` projde seznam a pro 0 nebo neznámé ID vrátí `nullptr`.
+
+Objekt načtený přes `loadObject` z více částí (učebna má 7 částí podle materiálů) má ID pro každou část, protože každá část je samostatný `DrawableObject`.
+
+### 22.5 Kliknutí: proč se nečte hned v callbacku
+
+```cpp
+void Application::mouseButtonCallback(GLFWwindow* window, int button, int action, int) {
+    if (!app || button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS) return;
+    glfwGetCursorPos(window, &app->clickX, &app->clickY);
+    app->clickPending = true;
+}
+```
+
+Callback se volá z `glfwPollEvents`, kdy už je snímek hotový. Po `glfwSwapBuffers` je obsah zadního bufferu nedefinovaný. Proto si callback jen uloží pozici a `run()` zavolá `handleClick()` v dalším snímku **po** `scene->draw()` a **před** `glfwSwapBuffers`, kdy jsou v barvě, hloubce i stencilu data právě nakresleného snímku. Pravé tlačítko dál ovládá rozhlížení kamery, výběr a vkládání jsou na levém.
+
+### 22.6 handleClick: čtení pixelu
+
+```cpp
+const int x = static_cast<int>(clickX * width / windowWidth);
+const int y = static_cast<int>(clickY * height / windowHeight);
+const int newy = height - 1 - y;
+
+glReadPixels(x, newy, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+glReadPixels(x, newy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+glReadPixels(x, newy, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+```
+
+- Kurzor je v souřadnicích okna, `glReadPixels` pracuje v pixelech framebufferu. Na HiDPI displeji se liší, proto poměr `glfwGetFramebufferSize / glfwGetWindowSize` (na běžném monitoru 1).
+- GLFW má počátek vlevo nahoře, OpenGL vlevo dole: `newy = h − 1 − y`.
+- Výpis ve formátu z LMS: `Clicked on pixel x, y, color RRGGBBAA, depth d, stencil index i`.
+
+### 22.7 unProject: bod ve světě
+
+```cpp
+if (depth < 1.0f) {
+    position = glm::unProject(glm::vec3(x, newy, depth), camera->getViewMatrix(),
+                              camera->getProjectionMatrix(), glm::vec4(0, 0, width, height));
+}
+```
+
+`unProject` jde zobrazovacím řetězcem pozpátku:
+
+1. okno → NDC: `x_ndc = 2·(x − vx)/w − 1`, totéž pro y, `z_ndc = 2·depth − 1`,
+2. `p = (P · V)⁻¹ · (x_ndc, y_ndc, z_ndc, 1)`,
+3. dělení w: `bod = p.xyz / p.w`.
+
+Předává se jen **V** (bez modelové matice), takže výsledek je ve světových souřadnicích. S `V · M` by vyšel bod v lokálních souřadnicích objektu s maticí M. Hloubka 1 = v pixelu nic není (obloha, z-buffer zůstal na hodnotě z `glClear`), bod neexistuje a kliknutí se ignoruje. Klik na zem dává y ≈ 0 (např. `unProject [1.08, -0.011, 6.81]`), odchylka v řádu milimetrů je přesnost 24bitového z-bufferu ve vzdálenosti několika metrů.
+
+### 22.8 Režimy a reakce na klik
+
+```cpp
+enum class InteractionMode { Select, Insert, Path };
+```
+
+Klávesa M přepíná dokola a vypíše `Mode: select / insert / path`. Přepnutí režimu zahodí rozpracovaný bod A, přepnutí scény (`activateScene`) navíc zruší výběr.
+
+| Režim | Klik na | Reakce |
+|---|---|---|
+| select | `Moving` | `scene->remove`, „Pohybujici se objekt X odstranen“ |
+| select | `Collectible` | `scene->remove`, „Sebrano k / 10“ |
+| select | jiný objekt | výpis ID a druhu, zvýraznění `objectColor × (1; 0,4; 0,4)`, předchozí výběr dostane zpět původní barvu (zem se jen vypíše, zabarvená by zakryla půl obrazovky) |
+| select | obloha | „Nothing selected“, zruší výběr |
+| insert | `Ground` | vloží strom (les) / Shreka (učebna) na bod z unProject |
+| path | cokoli kromě oblohy | 1. klik = A, 2. klik = B, vytvoří jedoucí kouli |
+
+Zvýraznění funguje přes `objectColor`, kterým násobí barvu všechny fragment shadery (i textura v `phong.frag`), takže nejsou potřeba nové shadery.
+
+### 22.9 Vkládání: proč bez base scény
+
+```cpp
+TransformationComposite* transformation = make<TransformationComposite>();   // ne makeComposite(scene)
+transformation->addStatic(Translate(position));
+transformation->addStatic(Rotate(angle(generator), glm::vec3(0.0f, 1.0f, 0.0f)));
+transformation->addDynamic(make<GrowScale>(scale(generator), 2.0f));
+```
+
+Ostatní objekty mají na začátku kompozitu sdílený `base` scény (posun, otočení a zoom šipkami, kap. 17.11). Bod z unProject je ale už ve **světových** souřadnicích, tedy i s aktuálním `base`. Kdyby měl vložený strom `base` na začátku, posunul by se o něj ještě jednou a po posunu scény šipkami by se objevil jinde, než kam se kliklo. V učebně se stejně volá `loadObject(..., Kind::Normal, useBase = false)`, která místo `makeComposite` použije prázdný kompozit.
+
+`GrowScale` je list jako `DynamicRotate`: v `getMatrix()` spočítá z `glfwGetTime()` podíl uplynulé doby (0–1), vyhladí ho smoothstepem `x²(3 − 2x)` a vrátí `scale(cíl · x)`. Strom tak za 2 s vyroste ze země.
+
+### 22.10 LineMove: pohyb po úsečce
+
+```cpp
+float LineMove::getT() const {
+    const float length = glm::length(b - a);
+    if (length < 1e-4f) return 0.0f;
+    const double s = unitsPerSecond * (glfwGetTime() - startTime) / length;
+    return static_cast<float>(1.0 - std::fabs(1.0 - std::fmod(s, 2.0)));
+}
+glm::mat4 LineMove::getMatrix() const {
+    const float t = getT();
+    return glm::translate(glm::mat4(1.0f), (1.0f - t) * a + t * b);
+}
+```
+
+Parametrické vyjádření úsečky: **X(t) = A + (B − A)·t = (1 − t)·A + t·B, t ∈ ⟨0, 1⟩**. t = 0 je A, t = 0,5 střed, t = 1 je B.
+
+- **Stejná rychlost na krátké i dlouhé trase:** rychlost v metrech za sekundu se převede na rychlost parametru dělením délkou úsečky: `s = v · čas / |B − A|`. Za 1 s ujede koule vždy 2 m.
+- **Tam a zpět:** `s mod 2` roste 0 → 2, `1 − |1 − (s mod 2)|` je trojúhelníková funkce 0 → 1 → 0.
+- Čas se bere z `glfwGetTime()` od vytvoření, ne přičítáním ve snímku, takže rychlost nezávisí na FPS (stejně jako `DynamicRotate`).
+
+Jedoucí objekt (`addMovingObject`): koule, kompozit [`LineMove(A + 0,3·y, B + 0,3·y)`, `Scale(0,3)`]. Posun o poloměr nahoru, aby koule jela po povrchu, ne napůl v zemi. Materiál má vysoký ambient (0,6), protože světlo lesa je daleko a koule by jinak byla skoro černá.
+
+### 22.11 Sbírání mincí
+
+`addCollectibles` dá do lesa 10 zlatých koulí (`constantProgram`, druh `Collectible`) v pásu před kamerou. Mají vlastní generátor (seed 7), takže se nezměnilo rozložení stromů ze screenshotů dřívějších cvičení.
+
+### 22.12 Terén z LMS (scéna 14)
+
+`createTerrainScene` načte `assets/teren/teren.obj` přes `loadObject` s `Kind::Ground`. Terén má v OBJ rozměr 200 × 200 m a kopce do 35 m. Cílová výška 15 m ho zmenší asi na 0,43 (86 × 86 m) a `loadObject` ho postaví středem podstavy do počátku. UV souřadnice jdou od −4,5 do 5,5, takže tráva `grass.png` se díky `GL_REPEAT` opakuje desetkrát. Světlo je vysoko nad terénem bez útlumu, kamera stojí na okraji a dívá se šikmo dolů do údolí. Scéna je na **TAB** (14.).
+
+Terén je dobrá zkouška unProject: zem není rovina y = 0, takže výška bodu se musí opravdu vzít ze z-bufferu. Klik na kopec dá např. `unProject [-18.56, 9.27, -26.21]` a strom stojí na svahu ve výšce 9 m. Terén je vidět z dálky, proto jsou na něm vkládané stromy 3× větší a jedoucí koule má poloměr 1 m a rychlost 6 m/s. Úsečka mezi dvěma body na terénu je přímka, takže koule může vjet do kopce, který leží mezi A a B. Zadání chce pohyb po úsečce, ne po povrchu.
+
+### 22.13 Nastavení na F1–F12
+
+Přepínačů z jednotlivých cvičení přibylo tolik, že jsou teď všechny na funkčních klávesách. Shift otáčí směr cyklu, u F10 vybírá druhou akci:
+
+| Klávesa | Metoda | Co dělá |
+|---|---|---|
+| F1 | `printHelp()` | vypíše ovládání |
+| F2 / Shift+F2 | `cycleMode(±1)` | režim levého tlačítka (M) |
+| F3 / Shift+F3 | `cycleSpheresProgram(±1)` | program čtyř koulí ve scéně 7 (C / L / P / B) |
+| F4 / Shift+F4 | `cycleFov(±1)` | zorný úhel (F) |
+| F5 / Shift+F5 | `cycleNormalMode(±1)` | převod normál (N) |
+| F6 | `toggleBackSpecular()` | ořez odlesku na odvrácené straně (O) |
+| F7 | `toggleCorrectResize()` | aspect při změně okna (V) |
+| F8 | `toggleUvTest()` | UV test (U) |
+| F9 / Shift+F9 | `switchScene(±1)` | další / předchozí scéna (TAB) |
+| F10 | `resetSceneControls()` | posun, otočení a zoom scény zpět na výchozí |
+| Shift+F10 | `removeInsertedObjects()` | smaže objekty vložené kliknutím v aktivní scéně |
+| F11 | `toggleFullscreen()` | celá obrazovka (`glfwSetWindowMonitor`) |
+| F12 | `printStatus()` | vypíše aktuální nastavení |
+
+**Shift + W / S / A / D / E / Q** zrychlí kameru 3×: `processInput` pošle do `Camera::move*` krok `deltaTime · 3`. Pohyb je `eye += směr · rychlost · Δt`, tedy lineární v čase, takže trojnásobný krok je trojnásobná rychlost. Shift + R dál otáčí scénu opačně.
+
+Každé nastavení je jedna metoda `Application` a volají ji obě klávesy, funkční i původní písmeno, takže dřívější ovládání funguje beze změny. Cyklus dopředu i dozadu počítá jedna pomocná funkce `wrapIndex(index, krok, počet)` = `(index + krok mod počet + počet) mod počet`.
+
+Pro Shift+F10 si `Application` pamatuje dvojice (scéna, objekt) v `insertedObjects`. `insertModel` a `addMovingObject` tam zapíšou, co vytvořily. U Shreka v učebně vrátí `loadObject` vytvořené části přes nový parametr `created`. `Scene::remove` vrací `false`, když objekt ve scéně už není (koule smazaná kliknutím), takže se počítají jen opravdu odebrané objekty. Jejich ID se uvolní pro další vkládání.
+
+Celá obrazovka: `glfwSetWindowMonitor(window, monitor, 0, 0, šířka, výška, frekvence)`, zpět s uloženou pozicí a velikostí okna. Viewport a aspect přepočítá `framebufferSizeCallback` jako při každé změně okna, takže picking a unProject fungují i v plném rozlišení (velikost framebufferu se čte při každém kliknutí).
+
+### 22.14 Ověření
+
+Snímky jsou z dočasné kopie aplikace ve scratchpadu, která podle skriptu simuluje kliknutí (stejnou cestou jako callback: nastaví pozici a `clickPending`), uloží obraz a pod něj přidá výpis z konzole. Kód projektu se kvůli tomu neměnil.
+
+| Test | Výsledek |
+|---|---|
+| Build `-Wall -Wextra` | žádné nové varování (zůstává staré v `plantForest`, kap. 21.12) |
+| Klik na oblohu | `depth 1.000000, stencil index 0`, nic se nestane (`HEJ0094_1a.png`) |
+| Klik na zem / strom / hodiny / minci | ID 1 / 26 / 152 / 145, mince se sebrala (`HEJ0094_1a.png`) |
+| Výběr stromu | strom 66 zabarvený, výpis glReadPixels (`HEJ0094_1b.png`) |
+| unProject na zem | y ≈ −0,01, bod odpovídá místu kliknutí (`HEJ0094_2a.png`) |
+| M třikrát | `Mode: insert`, `path`, `select` (`HEJ0094_3c.png`) |
+| Vkládání stromů | 5 stromů přesně pod kurzorem, uvolněné ID 145 použito znovu (`HEJ0094_2b.png`) |
+| Dvě trasy | koule jedou tam a zpět, příčná i podélná trasa (`HEJ0094_3a.png`) |
+| Klik na jedoucí kouli | „Pohybujici se objekt 160 odstranen“, koule zmizela, sebraná mince „2 / 10“ (`HEJ0094_3b.png`) |
+| Učebna | 4 Shrekové (podlaha i stůl), koule ze stolu na podlahu (`HEJ0094_3d.png`) |
+| F1–F12, Shift | nápověda, stav, každý přepínač tam i zpět, Shift+F10 smazal 3 vložené objekty, F11 přepne na 2560 × 1440 a zpět |
+| Terén | 6 stromů na svazích v různé výšce (y od 0 do 9), koule přes údolí (`HEJ0094_2b_teren.png`) |
+
+### 22.15 Odpovědi na otázky ke cvičení 9
+
+- **Co je stencil buffer a proč se ID zapisuje jen při úspěšném testu hloubky?** Další buffer framebufferu, pro každý pixel 8bitové číslo. `glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)` zapíše referenční hodnotu jen tehdy, když fragment projde stencil testem i testem hloubky. Zakrytý objekt neprojde hloubkou, takže v pixelu zůstane ID viditelného objektu (22.2).
+- **Proč má pozadí ID 0 a proč je objektů nejvýš 255?** `glClear` nastaví stencil na 0, tedy „nic“. 8 bitů = 256 hodnot, jedna je pozadí. Obejít to jde color pickingem (ID zakódované do RGB, 2²⁴ objektů ve zvláštním průchodu bez osvětlení) nebo opakovaným používáním uvolněných ID (22.4).
+- **Proč se otáčí osa y a proč se pixely čtou před `glfwSwapBuffers`?** GLFW má počátek kurzoru vlevo nahoře, framebuffer vlevo dole. Po prohození je zadní buffer nedefinovaný (22.5, 22.6).
+- **Co znamená hloubka 1?** V pixelu se nic nenakreslilo (obloha, skybox nezapisuje hloubku), z-buffer zůstal na hodnotě z `glClear`. Žádný povrch tam není, takže není kam vkládat.
+- **Co počítá `unProject`? Co by vrátil s `V · M`?** Okno → NDC → (P·V)⁻¹ → dělení w. S `V · M` by vrátil bod v lokálních souřadnicích objektu (22.7).
+- **Parametrická úsečka a t = 0; 0,5; 1.** X(t) = A + (B − A)·t: A, střed, B (22.10).
+- **Stejná rychlost po krátké i dlouhé trase?** Rychlost se dělí délkou úsečky: dt = v · Δčas / |B − A| (22.10).
+- **Proč vkládaný objekt nemá `base` scény?** Bod z unProject je už ve světě, `base` by se započítal dvakrát (22.9).
+- **Tři způsoby identifikace.** Ray casting (paprsek z kamery, průsečíky na CPU, bez limitu, ale výpočet), color picking (jedinečná barva, zvláštní průchod bez osvětlení), stencil buffer (ID ve stencilu, jednoduché, limit 255).
+- **Průsečík přímky s rovinou.** Rovina (P − R)·n = 0, přímka X(t) = A + u·t: t = ((R − A)·n) / (u·n), pro u·n = 0 je přímka s rovinou rovnoběžná. Příklad: y = 0, A = [0, 4, 0], u = (1, −2, 0): t = 2, X = [2, 0, 0].

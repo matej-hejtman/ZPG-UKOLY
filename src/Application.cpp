@@ -5,6 +5,8 @@
 #include "CubeMap.h"
 #include "CustomMatrix.h"
 #include "DynamicRotate.h"
+#include "GrowScale.h"
+#include "LineMove.h"
 #include "Material.h"
 #include "ModelLoader.h"
 #include "Model.h"
@@ -35,9 +37,11 @@
 #include "tree.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
@@ -64,6 +68,7 @@ void Application::initialization() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    glfwWindowHint(GLFW_STENCIL_BITS, 8);
 
     window = glfwCreateWindow(800, 600, "ZPG", nullptr, nullptr);
     
@@ -90,6 +95,8 @@ void Application::initialization() {
     std::cout << "GLFW:           " << glfwGetVersionString() << std::endl;
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     int textureUnits = 0;
@@ -100,6 +107,7 @@ void Application::initialization() {
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, cursorPositionCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwGetCursorPos(window, &lastCursorX, &lastCursorY);
 }
 
@@ -254,9 +262,12 @@ void Application::createForestScene() {
 
     TransformationComposite* groundTransformation = makeComposite(scene);
     groundTransformation->addStatic(Scale(glm::vec3(50.0f, 1.0f, 50.0f)));
-    scene->add(createObject(groundModel, colorProgram, groundTransformation));
+    DrawableObject* ground = createObject(groundModel, colorProgram, groundTransformation);
+    ground->setKind(DrawableObject::Kind::Ground);
+    scene->add(ground);
 
     plantForest(scene, treeProgram, bushProgram, Material());
+    addCollectibles(scene);
     scene->setSkybox(getSkybox());
 
     for (int i = 0; i < 3; ++i) {
@@ -422,6 +433,7 @@ void Application::createBackSpecularScene() {
 void Application::createNightForestScene()
 {
     Scene* scene = createScene();
+    nightForestScene = scene;
     scene->setClearColor(glm::vec3(0.01f, 0.01f, 0.03f)); 
     scene->getCamera()->setSpeed(6.0f);
     scene->getCamera()->setPosition(glm::vec3(0.0f, 2.0f, 10.0f), 96.0f, -90.0f);
@@ -437,6 +449,7 @@ void Application::createNightForestScene()
     DrawableObject* ground = createObject(plainModel, phongProgram, groundTransformation);
     ground->setColor(glm::vec3(0.15f, 0.35f, 0.12f));
     ground->setMaterial(night);
+    ground->setKind(DrawableObject::Kind::Ground);
     scene->add(ground);
 
     plantForest(scene, nightTreeProgram, nightBushProgram, night);
@@ -488,14 +501,15 @@ Skybox* Application::getSkybox() {
     return skyboxes.back().get();
 }
 
-Bounds Application::loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material) {
+Bounds Application::loadObject(Scene* scene, const std::string& path, const glm::vec3& position, float rotationY, float targetHeight, ShaderProgram* program, const Material& material, DrawableObject::Kind kind, bool useBase, std::vector<DrawableObject*>* created) {
     LoadedModel loaded = ModelLoader::load(path);
     const glm::vec3 size = loaded.boundsMax - loaded.boundsMin;
 
-    TransformationComposite* transformation = makeComposite(scene);
+    TransformationComposite* transformation = useBase ? makeComposite(scene) : make<TransformationComposite>();
     transformation->addStatic(Translate(position));
     transformation->addStatic(Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f)));
     float scale = 1.0f;
+
     if (targetHeight > 0.0f && size.y > 0.0f) {
         scale = targetHeight / size.y;
         const glm::vec3 baseCenter((loaded.boundsMin.x + loaded.boundsMax.x) * 0.5f, loaded.boundsMin.y, (loaded.boundsMin.z + loaded.boundsMax.z) * 0.5f);
@@ -508,6 +522,7 @@ Bounds Application::loadObject(Scene* scene, const std::string& path, const glm:
         models.push_back(std::move(part.model));
         DrawableObject* object = createObject(model, program, transformation);
         object->setMaterial(material);
+        object->setKind(kind);
 
         if (!part.texturePath.empty() && std::filesystem::exists(part.texturePath)) {
             object->setTexture(textureManager->get(part.texturePath));
@@ -520,6 +535,9 @@ Bounds Application::loadObject(Scene* scene, const std::string& path, const glm:
             object->setColor(part.diffuseColor);
         }
         scene->add(object);
+        if (created) {
+            created->push_back(object);
+        }
     }
 
     Bounds bounds;
@@ -576,6 +594,7 @@ void Application::createTextureScene() {
 
 void Application::createClassroomScene() {
     Scene* scene = createScene();
+    classroomScene = scene;
     scene->setSkybox(getSkybox());
 
     Material material;
@@ -583,7 +602,7 @@ void Application::createClassroomScene() {
     material.specular = glm::vec3(0.2f);
     material.shininess = 16.0f;
 
-    const Bounds room = loadObject(scene, pathOrPlaceholder("assets/EB408/eb408.obj", "assets/test/classroom.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material);
+    const Bounds room = loadObject(scene, pathOrPlaceholder("assets/EB408/eb408.obj", "assets/test/classroom.obj"), glm::vec3(0.0f), 0.0f, 0.0f, phongProgram, material, DrawableObject::Kind::Ground);
 
     const glm::vec3 center = (room.min + room.max) * 0.5f;
 
@@ -597,7 +616,27 @@ void Application::createClassroomScene() {
     addSignature(scene);
 }
 
+void Application::createTerrainScene() {
+    Scene* scene = createScene();
+    terrainScene = scene;
+    scene->setSkybox(getSkybox());
+    scene->getLight()->setPosition(glm::vec3(20.0f, 60.0f, 30.0f));
+    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+    scene->getCamera()->setSpeed(8.0f);
+    scene->getCamera()->setPosition(glm::vec3(0.0f, 22.0f, 38.0f), 112.0f, -90.0f);
+
+    Material material;
+    material.ambient = glm::vec3(0.3f);
+    material.specular = glm::vec3(0.05f);
+    material.shininess = 8.0f;
+
+    loadObject(scene, pathOrPlaceholder("assets/teren/teren.obj", "assets/test/test_a.obj"), glm::vec3(0.0f), 0.0f, 15.0f, phongProgram, material,
+               DrawableObject::Kind::Ground);
+    addSignature(scene);
+}
+
 void Application::setSpheresProgram(ShaderProgram* program, const char* name) {
+
     for (DrawableObject* sphereObject : testSpheres) {
         sphereObject->setProgram(program);
     }
@@ -641,6 +680,7 @@ void Application::createModels() {
     createShrekScene();
     createTextureScene();
     createClassroomScene();
+    createTerrainScene();
 
     activateScene(0);
 }
@@ -651,6 +691,7 @@ void Application::activateScene(std::size_t index)
         return;
     }
 
+    clearInteraction();
     activeScene = index;
 
     Camera* camera = scenes[activeScene]->getCamera();
@@ -660,6 +701,168 @@ void Application::activateScene(std::size_t index)
         camera->setAspect(width, height);
     }
     camera->notifyAll();
+}
+
+static std::size_t wrapIndex(std::size_t index, int step, std::size_t count) {
+    return static_cast<std::size_t>((static_cast<long>(index) + step % static_cast<long>(count) + static_cast<long>(count)) % static_cast<long>(count));
+}
+
+void Application::printHelp() const {
+    std::cout <<
+        "=== Controls ===\n"
+        "F1          this help\n"
+        "F2 / Sh+F2  left mouse mode: select -> insert -> path (M)\n"
+        "F3 / Sh+F3  lighting of the four spheres, scene 7: constant / Lambert / Phong / Blinn-Phong (C L P B)\n"
+        "F4 / Sh+F4  field of view: next / previous (F)\n"
+        "F5 / Sh+F5  normal transformation: none / model matrix / normal matrix (N)\n"
+        "F6          Phong back-face specular cut on/off (O)\n"
+        "F7          window resize updates aspect / only viewport (V)\n"
+        "F8          UV test (U)\n"
+        "F9 / Sh+F9  next / previous scene (TAB / Shift+TAB), 1-9 and 0 = scenes 1-10\n"
+        "F10         reset scene move / spin / zoom (arrows, + -, R)\n"
+        "Sh+F10      remove objects inserted by clicks in this scene\n"
+        "F11         fullscreen on/off\n"
+        "F12         print current settings\n"
+        "WASD, E/Q, right mouse   camera\n"
+        "left mouse  select / insert / path point (by mode)\n"
+        "Esc         quit" << std::endl;
+}
+
+void Application::printStatus() const {
+    static const char* SPHERES[] = {"constant", "Lambert", "Phong", "Blinn-Phong"};
+    std::size_t inserted = 0;
+    for (const auto& entry : insertedObjects) {
+        if (activeScene < scenes.size() && entry.first == scenes[activeScene].get()) {
+            ++inserted;
+        }
+    }
+    std::cout << "=== Status ===\n"
+              << "scene " << activeScene + 1 << " / " << scenes.size()
+              << ", mode " << modeName(interactionMode) << (hasPathStart ? " (point A set)" : "")
+              << ", inserted objects " << inserted << ", collected " << collected << " / " << collectibleTotal << "\n"
+              << "spheres " << SPHERES[spheresProgramIndex]
+              << ", FOV " << (activeScene < scenes.size() ? scenes[activeScene]->getCamera()->getFov() : 0.0f) << " deg"
+              << ", normals " << normalMode
+              << ", back specular cut " << (cutBackSpecular ? "on" : "off")
+              << ", resize aspect " << (correctResize ? "on" : "off")
+              << ", UV test " << (uvTest ? "on" : "off")
+              << ", fullscreen " << (fullscreen ? "on" : "off") << std::endl;
+}
+
+void Application::cycleMode(int step) {
+    interactionMode = static_cast<InteractionMode>(wrapIndex(static_cast<std::size_t>(interactionMode), step, 3));
+    hasPathStart = false;
+    std::cout << "Mode: " << modeName(interactionMode) << std::endl;
+}
+
+void Application::cycleSpheresProgram(int step) {
+    ShaderProgram* programs[] = {constantProgram, lambertProgram, phongProgram, blinnProgram};
+    static const char* NAMES[] = {"constant", "Lambert", "Phong", "Blinn-Phong"};
+    spheresProgramIndex = wrapIndex(spheresProgramIndex, step, 4);
+    setSpheresProgram(programs[spheresProgramIndex], NAMES[spheresProgramIndex]);
+}
+
+void Application::cycleFov(int step) {
+    if (activeScene >= scenes.size()) {
+        return;
+    }
+    static const float FOVS[] = {30.0f, 45.0f, 60.0f, 90.0f, 120.0f, 150.0f, 170.0f};
+    fovIndex = wrapIndex(fovIndex, step, sizeof(FOVS) / sizeof(FOVS[0]));
+    scenes[activeScene]->getCamera()->setFov(FOVS[fovIndex]);
+    std::cout << "FOV: " << FOVS[fovIndex] << " deg" << std::endl;
+}
+
+void Application::cycleNormalMode(int step) {
+    static const char* NAMES[] = {"0 = untransformed (wrong)", "1 = model matrix (wrong)", "2 = normal matrix transpose(inverse(M)) (correct)"};
+    normalMode = static_cast<int>(wrapIndex(static_cast<std::size_t>(normalMode), step, 3));
+    for (ShaderProgram* program : {lambertProgram, phongProgram, blinnProgram}) {
+        program->setUniform("normalMode", normalMode);
+    }
+    std::cout << "Normals: " << NAMES[normalMode] << std::endl;
+}
+
+void Application::toggleBackSpecular() {
+    cutBackSpecular = !cutBackSpecular;
+    phongProgram->setUniform("cutBackSpecular", cutBackSpecular ? 1 : 0);
+    std::cout << "Phong back-face specular cut: " << (cutBackSpecular ? "on" : "off") << std::endl;
+}
+
+void Application::toggleCorrectResize() {
+    correctResize = !correctResize;
+    std::cout << "Resize updates aspect: " << (correctResize ? "yes (correct)" : "no (stretched)") << std::endl;
+    if (correctResize) {
+        activateScene(activeScene);
+    }
+}
+
+void Application::toggleUvTest() {
+    uvTest = !uvTest;
+    phongProgram->setUniform("uvTest", uvTest ? 1 : 0);
+    std::cout << "UV test: " << (uvTest ? "on" : "off") << std::endl;
+}
+
+void Application::switchScene(int step) {
+    if (scenes.empty()) {
+        return;
+    }
+    const std::size_t next = wrapIndex(activeScene, step, scenes.size());
+    activateScene(next);
+    std::cout << "Active scene: " << next + 1 << std::endl;
+}
+
+void Application::resetSceneControls() {
+    if (activeScene >= scenes.size()) {
+        return;
+    }
+    Scene* scene = scenes[activeScene].get();
+    scene->getMove().setOffset(glm::vec3(0.0f));
+    scene->getSpin().setAngle(0.0f);
+    scene->getZoom().setFactor(glm::vec3(1.0f));
+    std::cout << "Scene move / spin / zoom reset" << std::endl;
+}
+
+void Application::removeInsertedObjects() {
+    if (activeScene >= scenes.size()) {
+        return;
+    }
+    Scene* scene = scenes[activeScene].get();
+    std::size_t removed = 0;
+    for (auto it = insertedObjects.begin(); it != insertedObjects.end();) {
+        if (it->first == scene) {
+            if (it->second == selectedObject) {
+                selectObject(nullptr);
+            }
+            if (scene->remove(it->second)) {
+                ++removed;
+            }
+            it = insertedObjects.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+    hasPathStart = false;
+    std::cout << "Removed " << removed << " inserted objects" << std::endl;
+}
+
+void Application::toggleFullscreen() {
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+    if (!mode) {
+        return;
+    }
+
+    fullscreen = !fullscreen;
+    if (fullscreen) {
+        glfwGetWindowPos(window, &windowedX, &windowedY);
+        glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    }
+    else {
+        glfwSetWindowMonitor(window, nullptr, windowedX, windowedY, windowedWidth, windowedHeight, 0);
+        glfwSetWindowSize(window, windowedWidth, windowedHeight);
+    }
+    std::cout << "Fullscreen: " << (fullscreen ? "on" : "off") << std::endl;
 }
 
 void Application::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int mods) {
@@ -673,62 +876,35 @@ void Application::keyCallback(GLFWwindow* window, int key, int /*scancode*/, int
         return;
     }
 
+    const int dir = (mods & GLFW_MOD_SHIFT) ? -1 : 1;
+    const bool shift = dir < 0;
+
     switch (key) {
-    case GLFW_KEY_C: app->setSpheresProgram(app->constantProgram, "constant"); return;
-    case GLFW_KEY_L: app->setSpheresProgram(app->lambertProgram, "Lambert"); return;
-    case GLFW_KEY_P: app->setSpheresProgram(app->phongProgram, "Phong"); return;
-    case GLFW_KEY_B: app->setSpheresProgram(app->blinnProgram, "Blinn-Phong"); return;
+    case GLFW_KEY_F1: app->printHelp(); return;
+    case GLFW_KEY_F2: app->cycleMode(dir); return;
+    case GLFW_KEY_F3: app->cycleSpheresProgram(dir); return;
+    case GLFW_KEY_F4: app->cycleFov(dir); return;
+    case GLFW_KEY_F5: app->cycleNormalMode(dir); return;
+    case GLFW_KEY_F6: app->toggleBackSpecular(); return;
+    case GLFW_KEY_F7: app->toggleCorrectResize(); return;
+    case GLFW_KEY_F8: app->toggleUvTest(); return;
+    case GLFW_KEY_F9: app->switchScene(dir); return;
+    case GLFW_KEY_F10: if (shift) app->removeInsertedObjects(); else app->resetSceneControls(); return;
+    case GLFW_KEY_F11: app->toggleFullscreen(); return;
+    case GLFW_KEY_F12: app->printStatus(); return;
+
+    case GLFW_KEY_C: app->spheresProgramIndex = 0; app->setSpheresProgram(app->constantProgram, "constant"); return;
+    case GLFW_KEY_L: app->spheresProgramIndex = 1; app->setSpheresProgram(app->lambertProgram, "Lambert"); return;
+    case GLFW_KEY_P: app->spheresProgramIndex = 2; app->setSpheresProgram(app->phongProgram, "Phong"); return;
+    case GLFW_KEY_B: app->spheresProgramIndex = 3; app->setSpheresProgram(app->blinnProgram, "Blinn-Phong"); return;
+    case GLFW_KEY_TAB: app->switchScene(dir); return;
+    case GLFW_KEY_M: app->cycleMode(dir); return;
+    case GLFW_KEY_U: app->toggleUvTest(); return;
+    case GLFW_KEY_N: app->cycleNormalMode(1); return;
+    case GLFW_KEY_O: app->toggleBackSpecular(); return;
+    case GLFW_KEY_V: app->toggleCorrectResize(); return;
+    case GLFW_KEY_F: app->cycleFov(1); return;
     default: break;
-    }
-
-    if (key == GLFW_KEY_TAB && !app->scenes.empty()) {
-        const std::size_t count = app->scenes.size();
-        const std::size_t next = (mods & GLFW_MOD_SHIFT) ? (app->activeScene + count - 1) % count : (app->activeScene + 1) % count;
-        app->activateScene(next);
-        std::cout << "Active scene: " << next + 1 << std::endl;
-        return;
-    }
-
-    if (key == GLFW_KEY_U) {
-        app->uvTest = !app->uvTest;
-        app->phongProgram->setUniform("uvTest", app->uvTest ? 1 : 0);
-        std::cout << "UV test: " << (app->uvTest ? "on" : "off") << std::endl;
-        return;
-    }
-
-    if (key == GLFW_KEY_N) {
-        app->normalMode = (app->normalMode + 1) % 3;
-        static const char* NAMES[] = {"0 = untransformed (wrong)", "1 = model matrix (wrong)", "2 = normal matrix transpose(inverse(M)) (correct)"};
-        
-        for (ShaderProgram* program : {app->lambertProgram, app->phongProgram, app->blinnProgram}) {
-            program->setUniform("normalMode", app->normalMode);
-        }
-
-        std::cout << "Normals: " << NAMES[app->normalMode] << std::endl;
-        return;
-    }
-    if (key == GLFW_KEY_O) {
-        app->cutBackSpecular = !app->cutBackSpecular;
-        app->phongProgram->setUniform("cutBackSpecular", app->cutBackSpecular ? 1 : 0);
-        std::cout << "Phong back-face specular cut: " << (app->cutBackSpecular ? "on" : "off") << std::endl;
-        return;
-    }
-    if (key == GLFW_KEY_V) {
-        app->correctResize = !app->correctResize;
-        std::cout << "Resize updates aspect: " << (app->correctResize ? "yes (correct)" : "no (stretched)") << std::endl;
-        
-        if (app->correctResize){
-            app->activateScene(app->activeScene);
-        }
-        return;
-    }
-
-    if (key == GLFW_KEY_F && app->activeScene < app->scenes.size()) {
-        static const float FOVS[] = {30.0f, 45.0f, 60.0f, 90.0f, 120.0f, 150.0f, 170.0f};
-        app->fovIndex = (app->fovIndex + 1) % (sizeof(FOVS) / sizeof(FOVS[0]));
-        app->scenes[app->activeScene]->getCamera()->setFov(FOVS[app->fovIndex]);
-        std::cout << "FOV: " << FOVS[app->fovIndex] << " deg" << std::endl;
-        return;
     }
 
     if ((key >= GLFW_KEY_1 && key <= GLFW_KEY_9) || key == GLFW_KEY_0) {
@@ -762,6 +938,213 @@ void Application::framebufferSizeCallback(GLFWwindow* window, int width, int hei
     if (app && app->correctResize && app->activeScene < app->scenes.size()) {
         app->scenes[app->activeScene]->getCamera()->setAspect(width, height);
     }
+}
+
+void Application::mouseButtonCallback(GLFWwindow* window, int button, int action, int /*mods*/) {
+    auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+    if (!app || button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS) {
+        return;
+    }
+
+    glfwGetCursorPos(window, &app->clickX, &app->clickY);
+    app->clickPending = true;
+}
+
+const char* Application::modeName(InteractionMode mode) {
+    switch (mode) {
+    case InteractionMode::Insert: return "insert";
+    case InteractionMode::Path: return "path";
+    default: return "select";
+    }
+}
+
+void Application::selectObject(DrawableObject* object) {
+    if (selectedObject) {
+        selectedObject->setColor(selectedOriginalColor);
+    }
+
+    selectedObject = object;
+    if (selectedObject) {
+        selectedOriginalColor = selectedObject->getColor();
+        selectedObject->setColor(selectedOriginalColor * glm::vec3(1.0f, 0.4f, 0.4f));
+    }
+}
+
+void Application::clearInteraction() {
+    selectObject(nullptr);
+    hasPathStart = false;
+}
+
+void Application::handleClick() {
+    if (activeScene >= scenes.size()) {
+        return;
+    }
+    Scene* scene = scenes[activeScene].get();
+    Camera* camera = scene->getCamera();
+
+    int windowWidth = 0, windowHeight = 0, width = 0, height = 0;
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
+    glfwGetFramebufferSize(window, &width, &height);
+    if (windowWidth <= 0 || windowHeight <= 0 || width <= 0 || height <= 0) {
+        return;
+    }
+
+    const int x = static_cast<int>(clickX * width / windowWidth);
+    const int y = static_cast<int>(clickY * height / windowHeight);
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+        return;
+    }
+    const int newy = height - 1 - y;
+
+    GLubyte color[4] = {0, 0, 0, 0};
+    GLfloat depth = 1.0f;
+    GLuint index = 0;
+    glReadPixels(x, newy, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+    glReadPixels(x, newy, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+    glReadPixels(x, newy, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+
+    std::printf("Clicked on pixel %d, %d, color %02hhx%02hhx%02hhx%02hhx, depth %f, stencil index %u\n",
+                x, y, color[0], color[1], color[2], color[3], depth, index);
+
+    DrawableObject* object = scene->getObjectById(index);
+
+    const bool hasPoint = depth < 1.0f;
+    glm::vec3 position(0.0f);
+    if (hasPoint) {
+        const glm::vec3 screen(static_cast<float>(x), static_cast<float>(newy), depth);
+        const glm::vec4 viewport(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+        position = glm::unProject(screen, camera->getViewMatrix(), camera->getProjectionMatrix(), viewport);
+        std::printf("unProject [%f, %f, %f]\n", position.x, position.y, position.z);
+    }
+
+    switch (interactionMode) {
+    case InteractionMode::Select:
+        if (!object) {
+            std::cout << "Nothing selected (background)" << std::endl;
+            selectObject(nullptr);
+        }
+        else if (object->getKind() == DrawableObject::Kind::Moving) {
+            std::cout << "Pohybujici se objekt " << index << " odstranen" << std::endl;
+            scene->remove(object);
+        }
+        else if (object->getKind() == DrawableObject::Kind::Collectible) {
+            scene->remove(object);
+            ++collected;
+            std::cout << "Sebrano " << collected << " / " << collectibleTotal << std::endl;
+        }
+        else {
+            std::cout << "Selected object " << index << " (" << DrawableObject::kindName(object->getKind()) << ")" << std::endl;
+            selectObject(object->getKind() == DrawableObject::Kind::Ground ? nullptr : object);
+        }
+        break;
+
+    case InteractionMode::Insert:
+        if (!hasPoint || !object || object->getKind() != DrawableObject::Kind::Ground) {
+            std::cout << "Insert: click on the ground" << std::endl;
+            break;
+        }
+        insertModel(scene, position);
+        break;
+
+    case InteractionMode::Path:
+        if (!hasPoint) {
+            std::cout << "Path: click on an object, not on the sky" << std::endl;
+            break;
+        }
+        if (!hasPathStart) {
+            pathStart = position;
+            hasPathStart = true;
+            std::printf("Path point A [%f, %f, %f]\n", position.x, position.y, position.z);
+        }
+        else {
+            std::printf("Path point B [%f, %f, %f]\n", position.x, position.y, position.z);
+            addMovingObject(scene, pathStart, position);
+            hasPathStart = false;
+        }
+        break;
+    }
+}
+
+void Application::insertModel(Scene* scene, const glm::vec3& position) {
+    if (scene == classroomScene) {
+        Material material;
+        material.ambient = glm::vec3(0.3f);
+        material.specular = glm::vec3(0.2f);
+        material.shininess = 16.0f;
+        static std::mt19937 generator(9);
+        std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+        std::vector<DrawableObject*> parts;
+        loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), position, angle(generator), 0.9f, phongProgram, material, DrawableObject::Kind::Normal, false, &parts);
+        for (DrawableObject* part : parts) {
+            insertedObjects.emplace_back(scene, part);
+        }
+        std::cout << "Inserted Shrek" << std::endl;
+        return;
+    }
+
+    static std::mt19937 generator(5);
+    std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+    std::uniform_real_distribution<float> scale(0.3f, 0.6f);
+
+    TransformationComposite* transformation = make<TransformationComposite>();
+    transformation->addStatic(Translate(position));
+    transformation->addStatic(Rotate(angle(generator), glm::vec3(0.0f, 1.0f, 0.0f)));
+    const float size = scene == terrainScene ? 3.0f : 1.0f;
+    transformation->addDynamic(make<GrowScale>(size * scale(generator), 2.0f));
+
+    const bool night = scene == nightForestScene;
+    DrawableObject* tree = createObject(treeModel, night ? nightTreeProgram : treeProgram, transformation);
+    if (night) {
+        Material material;
+        material.ambient = glm::vec3(0.02f);
+        material.specular = glm::vec3(0.15f);
+        material.shininess = 16.0f;
+        tree->setMaterial(material);
+    }
+    scene->add(tree);
+    insertedObjects.emplace_back(scene, tree);
+    std::cout << "Inserted tree, id " << tree->getId() << std::endl;
+}
+
+void Application::addMovingObject(Scene* scene, const glm::vec3& a, const glm::vec3& b) {
+    const float radius = scene == terrainScene ? 1.0f : 0.3f;
+    const float speed = scene == terrainScene ? 6.0f : 2.0f;
+    const glm::vec3 lift(0.0f, radius, 0.0f);
+
+    TransformationComposite* transformation = make<TransformationComposite>();
+    transformation->addDynamic(make<LineMove>(a + lift, b + lift, speed));
+    transformation->addStatic(Scale(radius));
+
+    DrawableObject* sphereObject = createObject(sphereModel, phongProgram, transformation);
+    sphereObject->setColor(glm::vec3(1.0f, 0.5f, 0.1f));
+    Material material; 
+    material.ambient = glm::vec3(0.6f);
+    material.diffuse = glm::vec3(0.6f);
+    material.specular = glm::vec3(0.5f);
+    material.shininess = 32.0f;
+    sphereObject->setMaterial(material);
+    sphereObject->setKind(DrawableObject::Kind::Moving);
+    scene->add(sphereObject);
+    insertedObjects.emplace_back(scene, sphereObject);
+    std::cout << "Moving object " << sphereObject->getId() << " created" << std::endl;
+}
+
+void Application::addCollectibles(Scene* scene) {
+    std::mt19937 generator(7);
+    std::uniform_real_distribution<float> x(-9.0f, 9.0f);
+    std::uniform_real_distribution<float> z(4.0f, 15.0f);
+
+    const int COUNT = 10;
+    for (int i = 0; i < COUNT; ++i) {
+        TransformationComposite* transformation = makeComposite(scene);
+        transformation->addStatic(Translate(glm::vec3(x(generator), 0.35f, z(generator))));
+        transformation->addStatic(Scale(0.25f));
+        DrawableObject* coin = createObject(sphereModel, constantProgram, transformation);
+        coin->setColor(glm::vec3(1.0f, 0.8f, 0.1f));
+        coin->setKind(DrawableObject::Kind::Collectible);
+        scene->add(coin);
+    }
+    collectibleTotal += COUNT;
 }
 
 void Application::updateClock() {
@@ -801,10 +1184,15 @@ void Application::run() {
             glClearColor(background.r, background.g, background.b, 1.0f);
         }
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         if (activeScene < scenes.size()) {
             scenes[activeScene]->draw();
+        }
+
+        if (clickPending) {
+            clickPending = false;
+            handleClick();
         }
 
         glfwPollEvents();
@@ -826,13 +1214,16 @@ void Application::processInput(float deltaTime) {
 
     auto pressed = [this](int key) { return glfwGetKey(window, key) == GLFW_PRESS; };
 
+    const bool sprint = pressed(GLFW_KEY_LEFT_SHIFT) || pressed(GLFW_KEY_RIGHT_SHIFT);
+    const float cameraStep = deltaTime * (sprint ? 3.0f : 1.0f);
+
     Camera* camera = scene->getCamera();
-    if (pressed(GLFW_KEY_W)) camera->moveForward(deltaTime);
-    if (pressed(GLFW_KEY_S)) camera->moveBackward(deltaTime);
-    if (pressed(GLFW_KEY_A)) camera->moveLeft(deltaTime);
-    if (pressed(GLFW_KEY_D)) camera->moveRight(deltaTime);
-    if (pressed(GLFW_KEY_E)) camera->moveUp(deltaTime);
-    if (pressed(GLFW_KEY_Q)) camera->moveDown(deltaTime);
+    if (pressed(GLFW_KEY_W)) camera->moveForward(cameraStep);
+    if (pressed(GLFW_KEY_S)) camera->moveBackward(cameraStep);
+    if (pressed(GLFW_KEY_A)) camera->moveLeft(cameraStep);
+    if (pressed(GLFW_KEY_D)) camera->moveRight(cameraStep);
+    if (pressed(GLFW_KEY_E)) camera->moveUp(cameraStep);
+    if (pressed(GLFW_KEY_Q)) camera->moveDown(cameraStep);
 
     const float moveSpeed = 0.8f;
     const float zoomSpeed = 1.5f;

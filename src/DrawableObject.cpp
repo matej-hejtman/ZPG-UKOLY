@@ -13,6 +13,7 @@ void DrawableObject::draw() const {
     material.apply(program);
 
     if (program->hasUniform("hasTexture")) {
+
         if (texture) {
             texture->bind(0);
             program->setUniform("textureUnit", 0);
@@ -22,6 +23,25 @@ void DrawableObject::draw() const {
             program->setUniform("hasTexture", 0);
         }
     }
+
     program->use();
+    glStencilFunc(GL_ALWAYS, static_cast<GLint>(id), 0xFF);
     model->draw();
+}
+
+const char* DrawableObject::kindName(Kind kind) {
+
+    switch (kind) {
+        case Kind::Ground: 
+            return "ground";
+        
+        case Kind::Collectible: 
+            return "collectible";
+        
+        case Kind::Moving: 
+            return "moving";
+        
+        default: 
+            return "normal";
+    }
 }

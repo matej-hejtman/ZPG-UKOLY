@@ -5,8 +5,7 @@
 
 class ICameraObserver;
 
-class Camera
-{
+class Camera {
 public:
     Camera();
 
