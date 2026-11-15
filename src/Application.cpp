@@ -222,7 +222,7 @@ static const float FOREST_CLOCK_ANGLES[] = {0.0f, 26.6f, -26.6f};
 static const float FOREST_CLOCK_SCALES[] = {1.0f, 1.5f, 1.2f};
 
 void Application::plantForest(Scene* scene, ShaderProgram* treeShader, ShaderProgram* bushShader, const Material& material) {
-    std::mt19937 generator(42);
+    std::mt19937 generator(67);
     std::uniform_real_distribution<float> position(-40.0f, 40.0f);
     std::uniform_real_distribution<float> angle(0.0f, 360.0f);
     std::uniform_real_distribution<float> treeScale(0.3f, 0.6f);
