@@ -10,12 +10,14 @@ uniform mat4 projectionMatrix = mat4(1.0);
 uniform float hourAngle;
 uniform float minuteAngle;
 uniform float secondAngle;
+uniform vec3 logoColor = vec3(1.0, 1.0, 0.0);
 
 out vec3 vertexColor;
 
 const vec3 SECOND_COLOR = vec3(1.0, 0.0, 0.0);
 const vec3 MINUTE_COLOR = vec3(0.0, 1.0, 0.0);
 const vec3 HOUR_COLOR = vec3(0.0, 0.0, 1.0);
+const vec3 LOGO_COLOR = vec3(1.0, 1.0, 0.0);
 const float TOLERANCE = 0.01;
 
 vec3 rotateZ(vec3 p, float angle) {
@@ -35,5 +37,5 @@ void main() {
     }
 
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(p, 1.0);
-    vertexColor = color;
+    vertexColor = distance(color, LOGO_COLOR) < TOLERANCE ? logoColor : color;
 }

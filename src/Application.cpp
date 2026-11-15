@@ -115,6 +115,7 @@ void Application::initialization() {
 static const int TREE_WOOD_VERTEX_COUNT = 36444;
 
 static const float CLOCK_DIRECTION = -1.0f;
+static const glm::vec3 CLOCK_LOGO_COLOR = glm::vec3(0.0f, 1.0f, 1.0f);
 
 ShaderProgram* Application::createProgram(const char* vertexPath, const char* fragmentPath) {
     shaderPrograms.push_back(std::make_unique<ShaderProgram>(vertexPath, fragmentPath));
@@ -1334,6 +1335,7 @@ void Application::updateClock() {
     clockProgram->setUniform("secondAngle", CLOCK_DIRECTION * glm::radians(secondDeg));
     clockProgram->setUniform("minuteAngle", CLOCK_DIRECTION * glm::radians(minuteDeg));
     clockProgram->setUniform("hourAngle", CLOCK_DIRECTION * glm::radians(hourDeg));
+    clockProgram->setUniform("logoColor", CLOCK_LOGO_COLOR);
 }
 
 void Application::run() {

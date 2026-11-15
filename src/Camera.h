@@ -44,7 +44,7 @@ private:
     float fov = 60.0f;
     float aspect = 4.0f / 3.0f;
     float nearPlane = 0.1f;
-    float farPlane = 100.0f;
+    float farPlane = 250.0f;
     float speed = 1.5f;
     float sensitivity = 0.15f;
 
