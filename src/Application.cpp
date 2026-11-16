@@ -287,8 +287,10 @@ void Application::createForestScene() {
 
     plantForest(scene, treeProgram, bushProgram, Material());
 
-    scene->getLight()->setPosition(glm::vec3(10.0f, 30.0f, 25.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+    Light* light = scene->addLight();
+    light->setPosition(glm::vec3(10.0f, 30.0f, 25.0f));
+    light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     Material props;
     props.ambient = glm::vec3(0.35f);
     props.specular = glm::vec3(0.2f);
@@ -312,7 +314,8 @@ void Application::createClockScene() {
 
 void Application::createSolarSystemScene() {
     Scene* scene = createScene();
-    scene->getLight()->setPosition(glm::vec3(0.0f));
+	Light* light = scene->addLight();
+	light->setPosition(glm::vec3(0.0f));
     scene->getCamera()->setPosition(glm::vec3(0.0f, 1.0f, 2.0f), 116.0f, -90.0f);
     const glm::vec3 up(0.0f, 1.0f, 0.0f);
 
@@ -384,7 +387,9 @@ void Application::createLoginScene() {
 
 void Application::createSpheresScene() {
     Scene* scene = createScene();
-    scene->getLight()->setPosition(glm::vec3(0.0f));
+
+	Light* light = scene->addLight();
+	light->setPosition(glm::vec3(0.0f));
     scene->getCamera()->setPosition(glm::vec3(0.0f, 0.0f, 8.0f), 90.0f, -90.0f);
 
     TransformationComposite* marker = makeComposite(scene);
@@ -410,8 +415,11 @@ void Application::createSpheresScene() {
 
 void Application::createNormalsScene() {
     Scene* scene = createScene();
-    scene->getLight()->setPosition(glm::vec3(3.0f, 3.0f, 4.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+
+	Light* light = scene->addLight();
+    light->setPosition(glm::vec3(3.0f, 3.0f, 4.0f));
+    light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     scene->getCamera()->setPosition(glm::vec3(0.0f, 0.0f, 7.0f), 90.0f, -90.0f);
 
     TransformationComposite* ellipsoid = makeComposite(scene);
@@ -442,8 +450,11 @@ void Application::createNormalsScene() {
 
 void Application::createBackSpecularScene() {
     Scene* scene = createScene();
-    scene->getLight()->setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+	
+    Light* light = scene->addLight();
+    light->setPosition(glm::vec3(0.0f, 0.0f, -4.0f));
+	light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     scene->getCamera()->setPosition(glm::vec3(0.0f, 0.0f, 5.0f), 90.0f, -90.0f);
 
     Material wide;
@@ -492,9 +503,12 @@ void Application::createNightForestScene()
     fireflyObject->setColor(fireflyColor);
     scene->add(fireflyObject);
 
-    scene->getLight()->setPosition(glm::vec3(0.0f));
-    scene->getLight()->setColor(fireflyColor);
-    scene->getLight()->setAttenuation(1.0f, 0.35f, 0.44f);
+	Light* light = scene->addLight();
+
+	light->setPosition(glm::vec3(0.0f));
+	light->setColor(fireflyColor);
+	light->setAttenuation(1.0f, 0.35f, 0.44f);
+
     scene->setLightTransformation(firefly);
 
     addSignature(scene);
@@ -661,8 +675,12 @@ Bounds Application::loadObject(Scene* scene, const std::string& path, const glm:
 void Application::createShrekScene() {
     Scene* scene = createScene();
     scene->setSkybox(getSkybox());
-    scene->getLight()->setPosition(glm::vec3(1.5f, 3.0f, 3.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+
+	Light* light = scene->addLight();
+
+	light->setPosition(glm::vec3(1.5f, 3.0f, 3.0f));
+	light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     scene->getCamera()->setPosition(glm::vec3(0.0f, 1.0f, 2.6f), 95.0f, -90.0f);
 
     Material material;
@@ -677,8 +695,12 @@ void Application::createShrekScene() {
 void Application::createTextureScene() {
     Scene* scene = createScene();
     scene->setSkybox(getSkybox());
-    scene->getLight()->setPosition(glm::vec3(0.0f, 5.0f, 4.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+
+	Light* light = scene->addLight();
+
+	light->setPosition(glm::vec3(0.0f, 5.0f, 4.0f));
+	light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     scene->getCamera()->setSpeed(3.0f);
     scene->getCamera()->setPosition(glm::vec3(0.0f, 1.6f, 6.0f), 98.0f, -90.0f);
 
@@ -715,8 +737,9 @@ void Application::createClassroomScene() {
     loadObject(scene, pathOrPlaceholder("assets/shrek/shrek.obj", "assets/test/test_a.obj"), glm::vec3(room.min.x + 0.9f, room.min.y, center.z - 1.8f), 90.0f, 1.8f, phongProgram, material);
     addExportModel(scene, "fox_stand", glm::vec3(room.min.x + 1.0f, room.min.y, center.z - 0.9f), 90.0f, 1.0f, material);
 
-    scene->getLight()->setPosition(glm::vec3(center.x, std::min(room.max.y - 0.3f, room.min.y + 2.6f), center.z));
-    scene->getLight()->setAttenuation(1.0f, 0.045f, 0.0075f);
+	Light* light = scene->addLight();
+	light->setPosition(glm::vec3(center.x, std::min(room.max.y - 0.3f, room.min.y + 2.6f), center.z));
+	light->setAttenuation(1.0f, 0.045f, 0.0075f);
 
     scene->getCamera()->setSpeed(2.5f);
     scene->getCamera()->setPosition(glm::vec3(room.max.x - 0.5f, room.min.y + 1.6f, center.z), 97.0f, 180.0f);
@@ -727,8 +750,11 @@ void Application::createTerrainScene() {
     Scene* scene = createScene();
     terrainScene = scene;
     scene->setSkybox(getSkybox());
-    scene->getLight()->setPosition(glm::vec3(20.0f, 60.0f, 30.0f));
-    scene->getLight()->setAttenuation(1.0f, 0.0f, 0.0f);
+
+	Light* light = scene->addLight();
+	light->setPosition(glm::vec3(20.0f, 60.0f, 30.0f));
+	light->setAttenuation(1.0f, 0.0f, 0.0f);
+
     scene->getCamera()->setSpeed(8.0f);
     scene->getCamera()->setPosition(glm::vec3(0.0f, 7.0f, 42.0f), 100.0f, -90.0f);
 

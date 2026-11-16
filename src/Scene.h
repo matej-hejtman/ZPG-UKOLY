@@ -28,11 +28,17 @@ public:
         return &camera; 
     }
 
-    Light* getLight() { 
-        return &light; 
+    Light* addLight() { 
+        lights.push_back(std::make_unique<Light>());
+		return lights.back().get();
+	}
+
+    const std::vector<std::unique_ptr<Light>>& getLights() const { 
+        return lights; 
     }
 
     void addLitProgram(ShaderProgram* program);
+
     void setLightTransformation(Transformation* transformation) { 
         lightTransformation = transformation; 
     }
@@ -74,7 +80,7 @@ private:
     std::vector<unsigned> freeIds;
 
     Camera camera;
-    Light light;
+    std::vector<std::unique_ptr<Light>> lights;
     std::vector<ShaderProgram*> litPrograms;
     Transformation* lightTransformation = nullptr;
     glm::vec3 clearColor = glm::vec3(0.0f);

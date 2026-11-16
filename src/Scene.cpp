@@ -73,15 +73,23 @@ void Scene::draw() const {
     }
 
     const Transformation* placement = lightTransformation ? lightTransformation : &base;
-    const glm::vec4 lightPosition = placement->getMatrix() * glm::vec4(light.getPosition(), 1.0f);
-    
-    for (ShaderProgram* program : litPrograms) {
-        program->setUniform("lightPosition", glm::vec3(lightPosition) / lightPosition.w);
-        program->setUniform("lightColor", light.getColor());
-        program->setUniform("lightConstant", light.getConstant());
-        program->setUniform("lightLinear", light.getLinear());
-        program->setUniform("lightQuadratic", light.getQuadratic());
+
+    for (const auto& light : lights) {
+        if (!light->isEnabled()) {
+            continue;
+        }
+
+        const glm::vec4 lightPosition = placement->getMatrix() * glm::vec4(light->getPosition(), 1.0f);
+
+        for (ShaderProgram* program : litPrograms) {
+            program->setUniform("lightPosition", glm::vec3(lightPosition) / lightPosition.w);
+            program->setUniform("lightColor", light->getColor());
+            program->setUniform("lightConstant", light->getConstant());
+            program->setUniform("lightLinear", light->getLinear());
+            program->setUniform("lightQuadratic", light->getQuadratic());
+        }
     }
+    
 
     for (DrawableObject* object : staticObjects) {
         object->draw();

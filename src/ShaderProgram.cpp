@@ -98,6 +98,16 @@ void ShaderProgram::setUniform(const std::string& name, const glm::vec3& value) 
     glUniform3fv(location, 1, glm::value_ptr(value));
 }
 
+void ShaderProgram::setUniform(const std::string& name, const glm::vec4& value) {
+    const GLint location = getUniformLocation(name);
+    if (location == -1) {
+        return;
+    }
+
+    use();
+    glUniform4fv(location, 1, glm::value_ptr(value));
+}
+
 void ShaderProgram::setUniform(const std::string& name, const glm::mat4& value) {
     const GLint location = getUniformLocation(name);
     if (location == -1) {
