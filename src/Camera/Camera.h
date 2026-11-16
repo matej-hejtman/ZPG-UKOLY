@@ -16,7 +16,7 @@ public:
     glm::mat4 getProjectionMatrix() const;
 
     void setPosition(const glm::vec3& eyePosition, float alphaDeg, float phiDeg);
-    void setSpeed(float unitsPerSecond) { speed = unitsPerSecond; }
+    void setSpeed(float unitsPerSecond);
 
     void rotate(float dx, float dy);
     void moveForward(float deltaTime);
@@ -27,10 +27,10 @@ public:
     void moveDown(float deltaTime);
     void setAspect(int width, int height);
     void setFov(float degrees);
-    float getFov() const { return fov; }
+    float getFov() const;
 
-    const glm::vec3& getEye() const { return eye; }
-    const glm::vec3& getTarget() const { return target; }
+    const glm::vec3& getEye() const;
+    const glm::vec3& getTarget() const;
 
 private:
     void updateTarget();

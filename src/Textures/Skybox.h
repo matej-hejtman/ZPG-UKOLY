@@ -9,6 +9,7 @@ class Skybox {
 public:
     Skybox(Model* cube, ShaderProgram* program, CubeMap* cubeMap);
     void draw() const;
+    ShaderProgram* getProgram() const;
 
 private:
     Model* cube;

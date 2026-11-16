@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class DynamicRotate : public Transformation {
 public:
@@ -10,7 +10,7 @@ public:
 
     float getAngle() const;
     void setSpeed(float degPerSecond);
-    float getSpeed() const { return degPerSecond; }
+    float getSpeed() const;
 
 private:
     float degPerSecond;

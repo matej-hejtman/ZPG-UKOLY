@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Material.h"
+#include "Lighting/Material.h"
 
 #include <glm/glm.hpp>
 
@@ -15,41 +15,18 @@ public:
 
     DrawableObject(Model* model, ShaderProgram* program, Transformation* transformation);
 
-    void setColor(const glm::vec3& value) { 
-        color = value; 
-    }
-    
-    const glm::vec3& getColor() const { 
-        return color; 
-    }
-    
-    void setProgram(ShaderProgram* value) { 
-        program = value; 
-    }
+    void setColor(const glm::vec3& value);
+    const glm::vec3& getColor() const;
 
-    void setMaterial(const Material& value) { 
-        material = value; 
-    }
+    void setProgram(ShaderProgram* value);
+    void setMaterial(const Material& value);
+    void setTexture(Texture* value);
 
-    void setTexture(Texture* value) { 
-        texture = value; 
-    }
+    void setId(unsigned value);
+    unsigned getId() const;
 
-    void setId(unsigned value) { 
-        id = value; 
-    }
-
-    unsigned getId() const { 
-        return id; 
-    }
-
-    void setKind(Kind value) { 
-        kind = value; 
-    }
-    
-    Kind getKind() const { 
-        return kind; 
-    }
+    void setKind(Kind value);
+    Kind getKind() const;
 
     static const char* kindName(Kind kind);
 

@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "Material.h"
-#include "ShaderProgram.h"
+#include "Lighting/Material.h"
+#include "Rendering/ShaderProgram.h"
 
 void Material::apply(ShaderProgram* program) const {
     if (program->hasUniform("material.ambient")) {

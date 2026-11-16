@@ -1,5 +1,5 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "Shader.h"
+#include "Rendering/Shader.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -43,4 +43,8 @@ Shader::Shader(GLenum type, const std::string& path)
 
 Shader::~Shader() {
     glDeleteShader(id);
+}
+
+GLuint Shader::getId() const {
+    return id;
 }

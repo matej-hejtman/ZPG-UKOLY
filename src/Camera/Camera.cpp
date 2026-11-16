@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "Camera.h"
-#include "ICameraObserver.h"
+#include "Camera/Camera.h"
+#include "Camera/ICameraObserver.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -97,4 +97,20 @@ void Camera::setAspect(int width, int height) {
     
     aspect = static_cast<float>(width) / static_cast<float>(height);
     notifyAll();
+}
+
+void Camera::setSpeed(float unitsPerSecond) {
+    speed = unitsPerSecond;
+}
+
+float Camera::getFov() const {
+    return fov;
+}
+
+const glm::vec3& Camera::getEye() const {
+    return eye;
+}
+
+const glm::vec3& Camera::getTarget() const {
+    return target;
 }

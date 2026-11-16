@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class Oscillate : public Transformation {
 public:

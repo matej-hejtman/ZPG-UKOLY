@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "ICameraObserver.h"
+#include "Camera/ICameraObserver.h"
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -21,6 +21,7 @@ public:
     static void unbind();
 
 	void bindUniformBlock(const std::string& blockName, GLuint bindingPoint);
+    bool hasUniformBlock(const std::string& blockName) const;
 
     void setUniform(const std::string& name, int value);
     void setUniform(const std::string& name, float value);

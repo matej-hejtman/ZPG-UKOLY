@@ -1,5 +1,5 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "DynamicRotate.h"
+#include "Transformations/DynamicRotate.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -20,4 +20,8 @@ void DynamicRotate::setSpeed(float value) {
 
 glm::mat4 DynamicRotate::getMatrix() const {
     return glm::rotate(glm::mat4(1.0f), glm::radians(getAngle()), axis);
+}
+
+float DynamicRotate::getSpeed() const {
+    return degPerSecond;
 }

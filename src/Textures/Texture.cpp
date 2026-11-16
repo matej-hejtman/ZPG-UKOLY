@@ -1,5 +1,5 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "Texture.h"
+#include "Textures/Texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

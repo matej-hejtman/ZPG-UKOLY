@@ -1,5 +1,5 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "CubeMap.h"
+#include "Textures/CubeMap.h"
 
 #include <stb_image.h>
 

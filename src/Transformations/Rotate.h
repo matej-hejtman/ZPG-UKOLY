@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class Rotate : public Transformation {
 public:
@@ -8,8 +8,8 @@ public:
 
     glm::mat4 getMatrix() const override;
 
-    void setAngle(float valueDeg) { angleDeg = valueDeg; }
-    float getAngle() const { return angleDeg; }
+    void setAngle(float valueDeg);
+    float getAngle() const;
 
 private:
     float angleDeg;

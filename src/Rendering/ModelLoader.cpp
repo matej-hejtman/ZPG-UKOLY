@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "ModelLoader.h"
-#include "Model.h"
+#include "Rendering/ModelLoader.h"
+#include "Rendering/Model.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

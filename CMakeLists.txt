@@ -37,14 +37,14 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/libs/assimp EXCLUDE_FROM_ALL)
 # ---------------------------------------------------------------------------
 # Aplikace
 # ---------------------------------------------------------------------------
-file(GLOB SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
-file(GLOB HEADERS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.h)
-add_executable(ZPG ${SOURCES} ${HEADERS} "src/LightBuffer.h" "src/LightBuffer.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.h)
+add_executable(ZPG ${SOURCES} ${HEADERS})
 
 # All paths are relative to the project root - no absolute paths
 target_include_directories(ZPG PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/assets/models
+    ${CMAKE_SOURCE_DIR}/assets/models/headers
     ${CMAKE_SOURCE_DIR}/libs/glad/include
     ${CMAKE_SOURCE_DIR}/libs/glm
     ${CMAKE_SOURCE_DIR}/libs/stb)

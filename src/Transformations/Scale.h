@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class Scale : public Transformation {
 public:
@@ -9,8 +9,8 @@ public:
 
     glm::mat4 getMatrix() const override;
 
-    void setFactor(const glm::vec3& value) { factor = value; }
-    const glm::vec3& getFactor() const { return factor; }
+    void setFactor(const glm::vec3& value);
+    const glm::vec3& getFactor() const;
 
 private:
     glm::vec3 factor;

@@ -1,5 +1,15 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "TransformationComposite.h"
+#include "Transformations/TransformationComposite.h"
+
+TransformationComposite::StaticMatrix::StaticMatrix(const glm::mat4& matrix) : matrix(matrix) {}
+
+glm::mat4 TransformationComposite::StaticMatrix::getMatrix() const {
+    return matrix;
+}
+
+void TransformationComposite::StaticMatrix::multiply(const glm::mat4& other) {
+    matrix = matrix * other;
+}
 
 void TransformationComposite::addStatic(const Transformation& transformation) {
     const glm::mat4 matrix = transformation.getMatrix();
@@ -37,4 +47,12 @@ std::string TransformationComposite::describe() const
     }
 
     return text;
+}
+
+void TransformationComposite::add(Transformation* transformation) {
+    addDynamic(transformation);
+}
+
+std::size_t TransformationComposite::size() const {
+    return children.size();
 }

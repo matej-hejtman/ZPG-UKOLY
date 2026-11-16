@@ -1,9 +1,9 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "DrawableObject.h"
-#include "Model.h"
-#include "ShaderProgram.h"
-#include "Texture.h"
-#include "Transformation.h"
+#include "Rendering/DrawableObject.h"
+#include "Rendering/Model.h"
+#include "Rendering/ShaderProgram.h"
+#include "Textures/Texture.h"
+#include "Transformations/Transformation.h"
 
 DrawableObject::DrawableObject(Model* model, ShaderProgram* program, Transformation* transformation) : model(model), program(program), transformation(transformation) {}
 
@@ -44,4 +44,40 @@ const char* DrawableObject::kindName(Kind kind) {
         default: 
             return "normal";
     }
+}
+
+void DrawableObject::setColor(const glm::vec3& value) {
+    color = value;
+}
+
+const glm::vec3& DrawableObject::getColor() const {
+    return color;
+}
+
+void DrawableObject::setProgram(ShaderProgram* value) {
+    program = value;
+}
+
+void DrawableObject::setMaterial(const Material& value) {
+    material = value;
+}
+
+void DrawableObject::setTexture(Texture* value) {
+    texture = value;
+}
+
+void DrawableObject::setId(unsigned value) {
+    id = value;
+}
+
+unsigned DrawableObject::getId() const {
+    return id;
+}
+
+void DrawableObject::setKind(Kind value) {
+    kind = value;
+}
+
+DrawableObject::Kind DrawableObject::getKind() const {
+    return kind;
 }

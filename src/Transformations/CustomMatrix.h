@@ -1,11 +1,12 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class CustomMatrix : public Transformation {
 public:
-    explicit CustomMatrix(const glm::mat4& matrix) : matrix(matrix) {}
-    glm::mat4 getMatrix() const override { return matrix; }
+    explicit CustomMatrix(const glm::mat4& matrix);
+
+    glm::mat4 getMatrix() const override;
 
 private:
     glm::mat4 matrix;

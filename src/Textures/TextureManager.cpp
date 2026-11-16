@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "TextureManager.h"
-#include "Texture.h"
+#include "Textures/TextureManager.h"
+#include "Textures/Texture.h"
 
 TextureManager::TextureManager() = default;
 TextureManager::~TextureManager() = default;

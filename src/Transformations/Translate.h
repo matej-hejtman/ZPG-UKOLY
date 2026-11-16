@@ -1,6 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
-#include "Transformation.h"
+#include "Transformations/Transformation.h"
 
 class Translate : public Transformation {
 public:
@@ -8,8 +8,8 @@ public:
 
     glm::mat4 getMatrix() const override;
 
-    void setOffset(const glm::vec3& value) { offset = value; }
-    const glm::vec3& getOffset() const { return offset; }
+    void setOffset(const glm::vec3& value);
+    const glm::vec3& getOffset() const;
 
 private:
     glm::vec3 offset;

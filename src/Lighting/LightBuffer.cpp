@@ -1,4 +1,4 @@
-#include "LightBuffer.h"
+#include "Lighting/LightBuffer.h"
 
 #include <algorithm>
 

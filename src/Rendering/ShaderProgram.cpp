@@ -1,7 +1,7 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "ShaderProgram.h"
-#include "Camera.h"
-#include "Shader.h"
+#include "Rendering/ShaderProgram.h"
+#include "Camera/Camera.h"
+#include "Rendering/Shader.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -128,6 +128,10 @@ void ShaderProgram::onCameraChanged(Camera* camera) {
     if (hasUniform("cameraPosition")) {
         setUniform("cameraPosition", camera->getEye());
     }
+}
+
+bool ShaderProgram::hasUniformBlock(const std::string& blockName) const {
+    return glGetUniformBlockIndex(id, blockName.c_str()) != GL_INVALID_INDEX;
 }
 
 void ShaderProgram::bindUniformBlock(const std::string& blockName, GLuint bindingPoint) {

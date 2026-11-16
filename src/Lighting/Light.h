@@ -10,35 +10,31 @@ enum class LightType {
 
 class Light {
 public:
-    void setPosition(const glm::vec3& value) { position = value; }
-    void setColor(const glm::vec3& value) { color = value; }
-    const glm::vec3& getPosition() const { return position; }
-    const glm::vec3& getColor() const { return color; }
+    void setPosition(const glm::vec3& value);
+    const glm::vec3& getPosition() const;
 
-    void setAttenuation(float constantValue, float linearValue, float quadraticValue) {
-        constant = constantValue;
-        linear = linearValue;
-        quadratic = quadraticValue;
-    }
+    void setColor(const glm::vec3& value);
+    const glm::vec3& getColor() const;
 
-    float getConstant() const { return constant; }
-    float getLinear() const { return linear; }
-    float getQuadratic() const { return quadratic; }
+    void setAttenuation(float constantValue, float linearValue, float quadraticValue);
+    float getConstant() const;
+    float getLinear() const;
+    float getQuadratic() const;
 
-	void setEnabled(bool value) { enabled = value; }
-	bool isEnabled() const { return enabled; }
+    void setEnabled(bool value);
+    bool isEnabled() const;
 
-    void setType(LightType value) { type = value; }
-	LightType getType() const { return type; }
+    void setType(LightType value);
+    LightType getType() const;
 
-    void setDirection(const glm::vec3& value) { direction = value; }
-    const glm::vec3& getDirection() const { return direction; }
+    void setDirection(const glm::vec3& value);
+    const glm::vec3& getDirection() const;
 
-    void setCutOff(float value) { cutOff = value; }
-    float getCutOff() const { return cutOff; }
+    void setCutOff(float value);
+    float getCutOff() const;
 
-    void setOuterCutOff(float value) { outerCutOff = value; }
-	float getOuterCutOff() const { return outerCutOff; }
+    void setOuterCutOff(float value);
+    float getOuterCutOff() const;
 
 private:
     glm::vec3 position = glm::vec3(0.0f);

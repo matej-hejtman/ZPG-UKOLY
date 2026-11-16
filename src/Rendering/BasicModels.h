@@ -1,13 +1,13 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
 
-const float triangle[] = {
+const float triangle[18] = {
     -0.9f, -0.5f, 0.0f,   1.0f, 0.0f, 0.0f,
     -0.1f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,
     -0.5f,  0.5f, 0.0f,   0.0f, 0.0f, 1.0f,
 };
 
-const float square[] = {
+const float square[36] = {
     0.1f, -0.4f, 0.0f,   1.0f, 0.0f, 0.0f,
     0.9f, -0.4f, 0.0f,   0.0f, 1.0f, 0.0f,
     0.9f,  0.4f, 0.0f,   0.0f, 0.0f, 1.0f,
@@ -17,7 +17,7 @@ const float square[] = {
     0.1f,  0.4f, 0.0f,   1.0f, 1.0f, 0.0f,
 };
 
-const float ground[] = {
+const float ground[36] = {
     -1.0f, 0.0f,  1.0f,   0.10f, 0.30f, 0.08f,
      1.0f, 0.0f,  1.0f,   0.10f, 0.30f, 0.08f,
      1.0f, 0.0f, -1.0f,   0.30f, 0.55f, 0.22f,
@@ -26,7 +26,7 @@ const float ground[] = {
     -1.0f, 0.0f, -1.0f,   0.30f, 0.55f, 0.22f,
 };
 
-const float centeredTriangle[] = {
+const float centeredTriangle[18] = {
     -0.15f, -0.1f, 0.0f,   1.0f, 0.0f, 0.0f,
      0.15f, -0.1f, 0.0f,   0.0f, 1.0f, 0.0f,
      0.0f,   0.2f, 0.0f,   0.0f, 0.0f, 1.0f,
@@ -60,4 +60,15 @@ const float texturedFloor[48] = {
     -10.0f, 0.0f,  10.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
      10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,  10.0f, 10.0f,
     -10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
+};
+
+// HUD ctverec 1x1 se stredem v 0,0 (pozice + barva), barvu meni objectColor
+const float hudQuad[36] = {
+    -0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
+     0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
+     0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
+
+    -0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
+     0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
 };

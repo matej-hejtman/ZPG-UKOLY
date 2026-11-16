@@ -10,7 +10,7 @@ public:
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
 
-    GLuint getId() const { return id; }
+    GLuint getId() const;
 
 private:
     GLuint id = 0;

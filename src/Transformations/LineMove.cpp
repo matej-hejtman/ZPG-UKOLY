@@ -1,5 +1,5 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
-#include "LineMove.h"
+#include "Transformations/LineMove.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
