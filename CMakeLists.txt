@@ -1,4 +1,4 @@
-# Author: Matt Hejtman, login: HEJ0094
+﻿# Author: Matěj Hejtman, login: HEJ0094
 cmake_minimum_required(VERSION 3.16)
 project(ZPG C CXX)
 
@@ -39,7 +39,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/libs/assimp EXCLUDE_FROM_ALL)
 # ---------------------------------------------------------------------------
 file(GLOB SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB HEADERS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.h)
-add_executable(ZPG ${SOURCES} ${HEADERS})
+add_executable(ZPG ${SOURCES} ${HEADERS} "src/LightBuffer.h" "src/LightBuffer.cpp")
 
 # All paths are relative to the project root - no absolute paths
 target_include_directories(ZPG PRIVATE

@@ -1,9 +1,10 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Scene.h"
 #include "DrawableObject.h"
 #include "ShaderProgram.h"
 #include "Skybox.h"
 
+#include <string>
 #include <algorithm>
 #include <iostream>
 
@@ -74,22 +75,50 @@ void Scene::draw() const {
 
     const Transformation* placement = lightTransformation ? lightTransformation : &base;
 
+    std::vector<LightData> data;
+    int count = 0;
+
     for (const auto& light : lights) {
         if (!light->isEnabled()) {
             continue;
         }
 
-        const glm::vec4 lightPosition = placement->getMatrix() * glm::vec4(light->getPosition(), 1.0f);
-
-        for (ShaderProgram* program : litPrograms) {
-            program->setUniform("lightPosition", glm::vec3(lightPosition) / lightPosition.w);
-            program->setUniform("lightColor", light->getColor());
-            program->setUniform("lightConstant", light->getConstant());
-            program->setUniform("lightLinear", light->getLinear());
-            program->setUniform("lightQuadratic", light->getQuadratic());
+        if (count >= MAX_LIGHTS) {
+            break;
         }
+
+        const glm::vec4 transformed = placement->getMatrix() * glm::vec4(light->getPosition(), 1.0f);
+        const glm::vec3 position = glm::vec3(transformed) / transformed.w;
+        const glm::vec3 direction = glm::vec3(placement->getMatrix() * glm::vec4(light->getDirection(), 0.0f));
+
+        data.push_back({
+            glm::vec4(position, 1.0f),
+            glm::vec4(light->getColor(), 1.0f),
+            glm::vec4(light->getConstant(), light->getLinear(), light->getQuadratic(), 0.0f),
+            glm::vec4(direction, 0.0f),
+            glm::vec4(static_cast<float>(light->getType()), light->getCutOff(), light->getOuterCutOff(), 0.0f)
+            });
+
+        if (count == 0) {
+            for (ShaderProgram* program : litPrograms) {
+                program->setUniform("lightPosition", position);
+                program->setUniform("lightColor", light->getColor());
+                program->setUniform("lightConstant", light->getConstant());
+                program->setUniform("lightLinear", light->getLinear());
+                program->setUniform("lightQuadratic", light->getQuadratic());
+            }
+        }
+
+        ++count;
     }
-    
+
+    if (lightBuffer) {
+        lightBuffer->update(data);
+    }
+
+    for (ShaderProgram* program : litPrograms) {
+        program->setUniform("numberOfLights", count);
+    }
 
     for (DrawableObject* object : staticObjects) {
         object->draw();

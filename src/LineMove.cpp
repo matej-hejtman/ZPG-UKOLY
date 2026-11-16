@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "LineMove.h"
 
 #define GLFW_INCLUDE_NONE

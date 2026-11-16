@@ -1,4 +1,4 @@
-<!-- Author: Matt Hejtman, login: HEJ0094 -->
+<!-- Author: Matěj Hejtman, login: HEJ0094 -->
 # ZPG – cvičení 1 + 2: podrobná dokumentace kódu
 
 Tento dokument prochází **každý soubor projektu řádek po řádku**. U každého řádku (nebo malé skupiny souvisejících řádků) vysvětluje, **co dělá** a **proč je napsaný právě takhle**. Soubory jsou seřazené tak, jak dávají smysl při čtení: nejdřív build, pak `main`, nejjednodušší třídy, nakonec `Application`, která všechno spojuje.
@@ -78,7 +78,7 @@ ZPG/
 Projekt je na Linuxu, kde Visual Studio není. CMake umí Visual Studio otevřít přímo (*File → Open → Folder*), takže jeden soubor pokryje obě platformy.
 
 ```cmake
-# Author: Matt Hejtman, login: HEJ0094
+# Author: Matěj Hejtman, login: HEJ0094
 ```
 Hlavička se jménem a loginem, kterou zadání vyžaduje v každém mém souboru. V CMake je komentář `#`.
 
@@ -165,7 +165,7 @@ Po každém buildu zkopíruje celou složku `assets/` vedle spustitelného soubo
 ## 4. main.cpp
 
 ```cpp
-// Author: Matt Hejtman, login: HEJ0094
+// Author: Matěj Hejtman, login: HEJ0094
 #include "Application.h"
 ```
 Jediný include. `main.cpp` podle zadání **nesmí obsahovat OpenGL kód**, proto nezná ani GLAD, ani GLFW. Zná jen rozhraní třídy `Application`.
@@ -1156,7 +1156,7 @@ GLSL kód běží na grafické kartě. **Vertex shader** se spustí jednou pro k
 ### color.vert
 
 ```glsl
-// Author: Matt Hejtman, login: HEJ0094
+// Author: Matěj Hejtman, login: HEJ0094
 ```
 Hlavička. GLSL podporuje komentáře `//` jako C++. Komentář smí být před `#version`.
 

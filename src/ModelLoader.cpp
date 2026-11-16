@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "ModelLoader.h"
 #include "Model.h"
 

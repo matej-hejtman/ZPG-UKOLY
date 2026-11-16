@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 // 3D text "HEJ0094" modeled in Blender (login.h), converted by tools/convert_login.py
 // to the project vertex format: x, y, z, nx, ny, nz (6 floats per vertex).
 // Vertices: 25644, render with glDrawArrays(GL_TRIANGLES, 0, 25644);

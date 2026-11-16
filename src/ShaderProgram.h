@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
 #include "ICameraObserver.h"
 
@@ -19,6 +19,8 @@ public:
 
     void use() const;
     static void unbind();
+
+	void bindUniformBlock(const std::string& blockName, GLuint bindingPoint);
 
     void setUniform(const std::string& name, int value);
     void setUniform(const std::string& name, float value);

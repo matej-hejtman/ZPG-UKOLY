@@ -1,4 +1,4 @@
-<!-- Author: Matt Hejtman, login: HEJ0094 -->
+<!-- Author: Matěj Hejtman, login: HEJ0094 -->
 # ZPG – Matt Hejtman (HEJ0094)
 
 OpenGL 3.3 core, GLFW, GLAD (glad2, header-only), GLM. Build přes CMake. Podrobný popis kódu řádek po řádku je v [DOKUMENTACE.md](DOKUMENTACE.md).

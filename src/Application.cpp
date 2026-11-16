@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Application.h"
 #include "Camera.h"
 #include "DrawableObject.h"
@@ -137,11 +137,15 @@ void Application::createShaders() {
     nightTreeProgram = createProgram("assets/shaders/litFoliage.vert", "assets/shaders/phong.frag");
     nightBushProgram = createProgram("assets/shaders/litFoliage.vert", "assets/shaders/phong.frag");
     skyboxProgram = createProgram("assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
+	multilightProgram = createProgram("assets/shaders/lit.vert", "assets/shaders/multilight.frag");
 
     treeProgram->setUniform("woodVertexCount", TREE_WOOD_VERTEX_COUNT);
     bushProgram->setUniform("woodVertexCount", 0);
     nightTreeProgram->setUniform("woodVertexCount", TREE_WOOD_VERTEX_COUNT);
     nightBushProgram->setUniform("woodVertexCount", 0);
+
+	lightBuffer = std::make_unique<LightBuffer>();
+	multilightProgram->bindUniformBlock("LightBuffer", LIGHT_BINDING_POINT);
 
     cameraPrograms = {
         colorProgram, 
@@ -155,7 +159,8 @@ void Application::createShaders() {
         blinnProgram,
         nightTreeProgram, 
         nightBushProgram, 
-        skyboxProgram
+        skyboxProgram,
+        multilightProgram
     };
 
     litPrograms = {
@@ -163,7 +168,8 @@ void Application::createShaders() {
         phongProgram, 
         blinnProgram, 
         nightTreeProgram, 
-        nightBushProgram
+        nightBushProgram,
+        multilightProgram
     };
 }
 
@@ -183,6 +189,8 @@ DrawableObject* Application::createObject(Model* model, ShaderProgram* program, 
 Scene* Application::createScene() {
     scenes.push_back(std::make_unique<Scene>());
     Scene* scene = scenes.back().get();
+
+	scene->setLightBuffer(lightBuffer.get());
 
     Camera* camera = scene->getCamera();
 
@@ -314,8 +322,10 @@ void Application::createClockScene() {
 
 void Application::createSolarSystemScene() {
     Scene* scene = createScene();
+
 	Light* light = scene->addLight();
 	light->setPosition(glm::vec3(0.0f));
+
     scene->getCamera()->setPosition(glm::vec3(0.0f, 1.0f, 2.0f), 116.0f, -90.0f);
     const glm::vec3 up(0.0f, 1.0f, 0.0f);
 
@@ -388,8 +398,42 @@ void Application::createLoginScene() {
 void Application::createSpheresScene() {
     Scene* scene = createScene();
 
-	Light* light = scene->addLight();
-	light->setPosition(glm::vec3(0.0f));
+	//Light* light_white = scene->addLight();
+	//light_white->setColor(glm::vec3(1.0f));
+	//light_white->setPosition(glm::vec3(4.0f, 4.0f, 2));
+	//light_white->setAttenuation(1.0f, 0.0f, 0.0f);
+
+    Light* light_blue = scene->addLight();
+    light_blue->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
+    light_blue->setPosition(glm::vec3(2.0f, 0.0f, 6));
+    light_blue->setAttenuation(1.0f, 0.0f, 0.0f);
+    light_blue->setType(LightType::Spot);
+    light_blue->setDirection(glm::vec3(0.0f, 0.0f, -1.0f));
+
+    Light* light_red = scene->addLight();
+    light_red->setColor(glm::vec3(1.0f, 0.0f, 0.0f));
+    light_red->setPosition(glm::vec3(-4.0f, 4.0f, 2));
+    light_red->setAttenuation(1.0f, 0.0f, 0.0f);
+	light_red->setType(LightType::Directional);
+	light_red->setDirection(glm::vec3(1.0f, -1.0f, -1.0f));
+
+ //   Light* light_red = scene->addLight();
+ //   light_red->setColor(glm::vec3(1.0f, 0.0f, 0.0f));
+ //   light_red->setPosition(glm::vec3(-4.0f, 4.0f, 2));
+ //   light_red->setAttenuation(1.0f, 0.0f, 0.0f);
+
+ //   Light* light_green = scene->addLight();
+ //   light_green->setColor(glm::vec3(0.0f, 1.0f, 0.0f));
+ //   light_green->setPosition(glm::vec3(4.0f, -4.0f, 2));
+ //   light_green->setAttenuation(1.0f, 0.0f, 0.0f);
+
+
+ //   Light* light_blue = scene->addLight();
+ //   light_blue->setColor(glm::vec3(0.0f, 0.0f, 1.0f));
+ //   light_blue->setPosition(glm::vec3(-4.0f, -4.0f, 2));
+ //   light_blue->setAttenuation(1.0f, 0.0f, 0.0f);
+
+
     scene->getCamera()->setPosition(glm::vec3(0.0f, 0.0f, 8.0f), 90.0f, -90.0f);
 
     TransformationComposite* marker = makeComposite(scene);
@@ -404,7 +448,7 @@ void Application::createSpheresScene() {
     for (const glm::vec3& position : positions) {
         TransformationComposite* transformation = makeComposite(scene);
         transformation->addStatic(Translate(position));
-        DrawableObject* sphereObject = createObject(sphereModel, phongProgram, transformation);
+        DrawableObject* sphereObject = createObject(sphereModel, multilightProgram, transformation);
         sphereObject->setColor(glm::vec3(0.35f, 0.6f, 1.0f));
         scene->add(sphereObject);
         testSpheres.push_back(sphereObject);
@@ -1340,6 +1384,10 @@ void Application::addCollectibles(Scene* scene) {
     }
 }
 
+// ======================================
+// ulkid
+// ======================================
+
 void Application::updateClock() {
     const std::time_t now = std::time(nullptr);
     std::tm local{};
@@ -1363,6 +1411,10 @@ void Application::updateClock() {
     clockProgram->setUniform("hourAngle", CLOCK_DIRECTION * glm::radians(hourDeg));
     clockProgram->setUniform("logoColor", CLOCK_LOGO_COLOR);
 }
+
+// ======================================
+// Hlavni smycka
+// ======================================
 
 void Application::run() {
     double lastTime = glfwGetTime();
@@ -1398,6 +1450,10 @@ void Application::run() {
     window = nullptr;
     glfwTerminate();
 }
+
+// ======================================
+// Input
+// ======================================
 
 void Application::processInput(float deltaTime) {
     if (activeScene >= scenes.size()) {
@@ -1449,8 +1505,13 @@ void Application::processInput(float deltaTime) {
     scene->getZoom().setFactor(scene->getZoom().getFactor() * zoom);
 }
 
+// ======================================
+// ulkid
+// ======================================
+
 void Application::releaseResources() {
     scenes.clear();
+    lightBuffer.reset();
     skyboxes.clear();
     cubeMaps.clear();
 
@@ -1467,9 +1528,10 @@ void Application::releaseResources() {
     litPrograms.clear();
     testSpheres.clear();
     colorProgram = normalProgram = treeProgram = bushProgram = clockProgram = hudProgram = nullptr;
-    constantProgram = lambertProgram = phongProgram = blinnProgram = nullptr;
+    constantProgram = lambertProgram = phongProgram = blinnProgram = multilightProgram= nullptr;
     nightTreeProgram = nightBushProgram = skyboxProgram = nullptr;
     centeredTriangleModel = groundModel = plainModel = floorModel = sphereModel = treeModel = bushModel = nullptr;
     loginTextModel = loginColorModel = sunModel = earthModel = moonModel = clockModelGpu = rocketModel = nullptr;
     skycubeModel = nullptr;
+
 }

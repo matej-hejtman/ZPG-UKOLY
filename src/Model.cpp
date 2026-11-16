@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Model.h"
 
 Model::Model(const float* data, std::size_t floatCount, int floatsPerVertex, int attribute1Offset, int colorOffset) : vertexCount(static_cast<GLsizei>(floatCount / floatsPerVertex)), hasUV(floatsPerVertex == 8 || floatsPerVertex == 11), hasColorAttribute(colorOffset >= 0) {

@@ -1,6 +1,7 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
 #include "DrawableObject.h"
+#include "LightBuffer.h"
 
 #include <glm/glm.hpp>
 
@@ -144,6 +145,7 @@ private:
     ShaderProgram* nightTreeProgram = nullptr;
     ShaderProgram* nightBushProgram = nullptr;
     ShaderProgram* skyboxProgram = nullptr;
+	ShaderProgram* multilightProgram = nullptr;
     std::vector<ShaderProgram*> cameraPrograms;
     std::vector<ShaderProgram*> litPrograms;
     std::vector<DrawableObject*> testSpheres;
@@ -199,4 +201,6 @@ private:
     int windowedX = 100, windowedY = 100, windowedWidth = 800, windowedHeight = 600;
     int collected = 0;
     int collectibleTotal = 0;
+
+	std::unique_ptr<LightBuffer> lightBuffer;
 };

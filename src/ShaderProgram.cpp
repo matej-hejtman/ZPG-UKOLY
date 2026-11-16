@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "ShaderProgram.h"
 #include "Camera.h"
 #include "Shader.h"
@@ -128,4 +128,13 @@ void ShaderProgram::onCameraChanged(Camera* camera) {
     if (hasUniform("cameraPosition")) {
         setUniform("cameraPosition", camera->getEye());
     }
+}
+
+void ShaderProgram::bindUniformBlock(const std::string& blockName, GLuint bindingPoint) {
+    const GLuint blockIndex = glGetUniformBlockIndex(id, blockName.c_str());
+    if (blockIndex == GL_INVALID_INDEX) {
+        std::cerr << "Uniform block " << blockName << " NENALEZEN (" << description << ")" << std::endl;
+        return;
+    }
+    glUniformBlockBinding(id, blockIndex, bindingPoint);
 }

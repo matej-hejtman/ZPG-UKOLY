@@ -1,4 +1,4 @@
-// Author: Matt Hejtman, login: HEJ0094
+﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
 #include "Camera.h"
 #include "Light.h"
@@ -6,6 +6,7 @@
 #include "Scale.h"
 #include "TransformationComposite.h"
 #include "Translate.h"
+#include "LightBuffer.h"
 
 #include <vector>
 
@@ -73,6 +74,10 @@ public:
 
     void draw() const;
 
+    void setLightBuffer(LightBuffer* buffer) { 
+        lightBuffer = buffer; 
+	}
+
 private:
     std::vector<DrawableObject*> objects;
     std::vector<DrawableObject*> staticObjects;
@@ -90,4 +95,6 @@ private:
     Rotate controlSpin{0.0f, glm::vec3(0.0f, 1.0f, 0.0f)};
     Scale controlZoom{1.0f};
     TransformationComposite base;
+    
+	LightBuffer* lightBuffer = nullptr;
 };

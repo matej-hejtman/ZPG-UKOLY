@@ -1,4 +1,4 @@
-# Author: Matt Hejtman, login: HEJ0094
+﻿# Author: Matěj Hejtman, login: HEJ0094
 #
 # Builds the EB408 classroom for exercise 8 and exports it as one OBJ.
 #
