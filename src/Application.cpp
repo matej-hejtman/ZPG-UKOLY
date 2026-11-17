@@ -3,7 +3,7 @@
 
 #include "Scenes/TestScene.h"
 #include "Inputs/TestSceneInput.h"
-#include "Scenes/MaterialScene.h"
+#include "Scenes/ShowcaseScene.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -11,6 +11,20 @@
 
 #include <cstdlib>
 #include <iostream>
+
+//=================== PRIDAVANI SCEN ===================
+
+void Application::createScenes() {
+
+//  addScene<Scene, SceneInput>();
+
+    addScene<TestScene, TestSceneInput>();
+    addScene<ShowcaseScene, SceneInput>();
+
+    activateScene(0);
+}
+
+//======================================================
 
 Application::Application() = default;
 
@@ -71,13 +85,6 @@ void Application::initialization() {
     glfwGetCursorPos(window, &lastCursorX, &lastCursorY);
 
     resources = std::make_unique<Resources>();
-}
-
-void Application::createScenes() {
-    addScene<TestScene, TestSceneInput>();
-    addScene<MaterialScene, SceneInput>();
-
-    activateScene(0);
 }
 
 void Application::run() {
