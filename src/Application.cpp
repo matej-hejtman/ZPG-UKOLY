@@ -19,8 +19,8 @@ void Application::createScenes() {
 
 //  addScene<Scene, SceneInput>();
 
-    addScene<TestScene, TestSceneInput>();
     addScene<ShowcaseScene, ShowcaseInput>();
+    addScene<TestScene, TestSceneInput>();
 
     activateScene(0);
 }

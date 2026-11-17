@@ -56,8 +56,6 @@ float specularPhong(vec3 n, vec3 l, vec3 c) {
     return pow(max(dot(c, r), 0.0), material.shininess);
 }
 
-// Rozptyl svetla v mlze podel paprsku kamera -> fragment.
-// Integral 1/(h^2 + (t - t0)^2) dt od 0 do delky paprsku ma analyticke reseni pres atan.
 vec3 inScatter(vec3 origin, vec3 direction, float rayLength, vec3 lightPosition, vec3 lightColor) {
     vec3 toLight = lightPosition - origin;
     float t0 = dot(toLight, direction);
