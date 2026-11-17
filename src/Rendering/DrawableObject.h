@@ -11,7 +11,12 @@ class Texture;
 
 class DrawableObject {
 public:
-    enum class Kind { Normal, Ground, Collectible, Moving };
+    enum class Kind { 
+        Normal, 
+        Ground, 
+        Collectible, 
+        Moving 
+    };
 
     DrawableObject(Model* model, ShaderProgram* program, Transformation* transformation);
 

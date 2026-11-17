@@ -1,8 +1,6 @@
 // Author: Matej Hejtman, login: HEJ0094
 #version 330 core
 
-// HUD: bez kamery, jen ortho projekce (x: -aspect..aspect, y: -1..1)
-// lokace atributu jako v celem enginu: 0 = pozice, 3 = barva
 layout(location = 0) in vec3 position;
 layout(location = 3) in vec3 color;
 

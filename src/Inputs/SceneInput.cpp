@@ -25,6 +25,10 @@ void SceneInput::onMouseButton(GLFWwindow* window, int button, int action, int m
         glfwGetCursorPos(window, &clickX, &clickY);
         clickPending = true;
     }
+
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
+        scene.getCamera()->resetFov();
+    }
 }
 
 void SceneInput::onMouseMove(GLFWwindow* window, double dx, double dy) {

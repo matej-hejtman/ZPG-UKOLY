@@ -19,6 +19,9 @@ public:
     void setColor(const glm::vec3& value);
     const glm::vec3& getColor() const;
 
+    void setIntensity(float value);
+    float getIntensity() const;
+
     void setAttenuation(float constantValue, float linearValue, float quadraticValue);
     float getConstant() const;
     float getLinear() const;
@@ -46,6 +49,7 @@ public:
 private:
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 color = glm::vec3(1.0f);
+    float intensity = 1.0f;
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;

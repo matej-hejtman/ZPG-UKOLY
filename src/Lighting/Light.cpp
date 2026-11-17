@@ -6,6 +6,7 @@
 #include <iostream>
 
 static const float MAX_SPOT_ANGLE = 89.0f;
+static const float MIN_SPOT_SOFTNESS = 0.1f;
 
 void Light::setPosition(const glm::vec3& value) {
     position = value;
@@ -21,6 +22,14 @@ void Light::setColor(const glm::vec3& value) {
 
 const glm::vec3& Light::getColor() const {
     return color;
+}
+
+void Light::setIntensity(float value) {
+    intensity = std::max(value, 0.0f);
+}
+
+float Light::getIntensity() const {
+    return intensity;
 }
 
 void Light::setAttenuation(float constantValue, float linearValue, float quadraticValue) {
@@ -79,6 +88,8 @@ void Light::setSpotAngles(float innerDeg, float outerDeg) {
         outerDeg = innerDeg;
     }
 
+    outerDeg = std::max(outerDeg, innerDeg + MIN_SPOT_SOFTNESS);
+
     cutOffDeg = innerDeg;
     outerCutOffDeg = outerDeg;
 }
@@ -112,7 +123,7 @@ LightData Light::toData() const {
 
     LightData data;
     data.position = glm::vec4(glm::vec3(worldPosition) / worldPosition.w, 1.0f);
-    data.color = glm::vec4(color, 1.0f);
+    data.color = glm::vec4(color * intensity, 1.0f);
     data.attenuation = glm::vec4(constant, linear, quadratic, 0.0f);
     data.direction = glm::vec4(worldDirection, 0.0f);
     data.params = glm::vec4(static_cast<float>(type), std::cos(glm::radians(cutOffDeg)), std::cos(glm::radians(outerCutOffDeg)), 0.0f);

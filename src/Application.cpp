@@ -3,6 +3,7 @@
 
 #include "Scenes/TestScene.h"
 #include "Inputs/TestSceneInput.h"
+#include "Scenes/MaterialScene.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -74,6 +75,7 @@ void Application::initialization() {
 
 void Application::createScenes() {
     addScene<TestScene, TestSceneInput>();
+    addScene<MaterialScene, SceneInput>();
 
     activateScene(0);
 }

@@ -83,7 +83,16 @@ DrawableObject* Scene::createObject(Model* model, ShaderProgram* program, Transf
     ownedObjects.push_back(std::make_unique<DrawableObject>(model, program, transformation));
     DrawableObject* object = ownedObjects.back().get();
     registerProgram(program);
-    add(object);
+    object->setId(allocateId());
+    objects.push_back(object);
+    return object;
+}
+
+DrawableObject* Scene::createStaticObject(Model* model, ShaderProgram* program, Transformation* transformation) {
+    ownedObjects.push_back(std::make_unique<DrawableObject>(model, program, transformation));
+    DrawableObject* object = ownedObjects.back().get();
+    registerProgram(program);
+    staticObjects.push_back(object);
     return object;
 }
 
@@ -148,15 +157,6 @@ void Scene::releaseId(DrawableObject* object) {
     object->setId(0);
 }
 
-void Scene::add(DrawableObject* object) {
-    object->setId(allocateId());
-    objects.push_back(object);
-}
-
-void Scene::addStatic(DrawableObject* object) {
-    staticObjects.push_back(object);
-}
-
 bool Scene::remove(DrawableObject* object) {
     for (std::vector<DrawableObject*>* list : { &objects, &hudObjects, &staticObjects }) {
         
@@ -168,6 +168,13 @@ bool Scene::remove(DrawableObject* object) {
 
             if (object == ground) {
                 ground = nullptr;
+            }
+
+            auto owned = std::find_if(ownedObjects.begin(), ownedObjects.end(), [object](const std::unique_ptr<DrawableObject>& candidate) {
+                return candidate.get() == object;
+            });
+            if (owned != ownedObjects.end()) {
+                ownedObjects.erase(owned);
             }
 
             return true;

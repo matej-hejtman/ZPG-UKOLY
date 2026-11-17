@@ -65,8 +65,8 @@ public:
 
     void registerProgram(ShaderProgram* program);
 
-    void add(DrawableObject* object);
-    void addStatic(DrawableObject* object);
+    DrawableObject* createStaticObject(Model* model, ShaderProgram* program, Transformation* transformation);
+
     bool remove(DrawableObject* object);
     DrawableObject* getObjectById(unsigned id) const;
 

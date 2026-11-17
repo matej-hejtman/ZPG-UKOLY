@@ -50,6 +50,8 @@ Model* Resources::getModel(const std::string& name) {
         model = std::make_unique<Model>(skycube, sizeof(skycube) / sizeof(float), VertexLayout::position());
     } else if (name == "floor") {
         model = std::make_unique<Model>(texturedFloor, sizeof(texturedFloor) / sizeof(float), VertexLayout::positionNormalUv());
+    } else if (name == "cube") {
+        model = std::make_unique<Model>(cube, sizeof(cube) / sizeof(float), VertexLayout::positionNormalUv());
     } else if (name == "hudQuad") {
         model = std::make_unique<Model>(hudQuad, sizeof(hudQuad) / sizeof(float), VertexLayout::positionColor());
     }

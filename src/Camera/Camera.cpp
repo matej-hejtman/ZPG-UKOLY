@@ -85,6 +85,12 @@ void Camera::moveDown(float deltaTime) {
     notifyAll();
 }
 
+const float Camera::DEFAULT_FOV = 60.0f;
+
+void Camera::resetFov() {
+    setFov(DEFAULT_FOV);
+}
+
 void Camera::setFov(float degrees) {
     fov = std::clamp(degrees, 1.0f, 179.0f);
     notifyAll();

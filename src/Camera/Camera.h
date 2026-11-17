@@ -26,8 +26,11 @@ public:
     void moveUp(float deltaTime);
     void moveDown(float deltaTime);
     void setAspect(int width, int height);
+    static const float DEFAULT_FOV;
+
     void setFov(float degrees);
     float getFov() const;
+    void resetFov();
 
     void setFarPlane(float distance);
     float getFarPlane() const;
@@ -44,7 +47,7 @@ private:
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     float alpha = 90.0f;
     float phi = -90.0f;
-    float fov = 60.0f;
+    float fov = DEFAULT_FOV;
     float aspect = 4.0f / 3.0f;
     float nearPlane = 0.1f;
     float farPlane = 250.0f;

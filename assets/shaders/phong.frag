@@ -15,26 +15,23 @@ struct Material {
     float shininess;
 };
 
-// stejne rozlozeni jako LightData v LightBuffer.h (std140, 5x vec4)
 struct LightSource {
     vec4 position;
     vec4 color;
-    vec4 attenuation;   // x = constant, y = linear, z = quadratic
+    vec4 attenuation;
     vec4 direction;
-    vec4 params;        // x = typ (0 point, 1 directional, 2 spot), y = cos(vnitrni uhel), z = cos(vnejsi uhel)
+    vec4 params;
 };
 
-// stejne rozlozeni jako LightBufferHeader + pole LightData v LightBuffer.h
 layout(std140) uniform LightBuffer {
-    ivec4 lightInfo;        // x = pocet svetel
-    vec4 ambientLight;      // rgb = ambientni svetlo sceny
+    ivec4 lightInfo;
+    vec4 ambientLight;
     LightSource lights[MAX_LIGHTS];
 };
 
 uniform vec3 objectColor = vec3(1.0);
 uniform Material material;
 uniform vec3 cameraPosition;
-uniform bool cutBackSpecular = true;
 uniform sampler2D textureUnit;
 uniform int hasTexture = 0;
 
@@ -45,7 +42,7 @@ float attenuation(LightSource light, float d) {
 }
 
 float specularPhong(vec3 n, vec3 l, vec3 c) {
-    if (cutBackSpecular && dot(n, l) < 0.0) {
+    if (dot(n, l) < 0.0) {
         return 0.0;
     }
 

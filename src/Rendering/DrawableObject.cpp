@@ -12,7 +12,13 @@ void DrawableObject::draw() const {
     }
 
     program->use();
-    program->setUniform("modelMatrix", transformation->getMatrix());
+    const glm::mat4 modelMatrix = transformation->getMatrix();
+    program->setUniform("modelMatrix", modelMatrix);
+
+    if (program->hasUniform("normalMatrix")) {
+        program->setUniform("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
+    }
+
     program->setUniform("objectColor", color);
     material.apply(program);
 

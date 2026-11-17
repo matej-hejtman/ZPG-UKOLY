@@ -9,7 +9,6 @@ uniform mat4 projectionMatrix = mat4(1.0);
 out vec3 texCoord3;
 
 void main() {
-    texCoord3 = position;
-    // jen rotace kamery (bez posunu) -> skybox je "nekonecne daleko"
+    texCoord3 = vec3(-position.x, position.y, position.z);
     gl_Position = projectionMatrix * mat4(mat3(viewMatrix)) * vec4(position, 1.0);
 }
