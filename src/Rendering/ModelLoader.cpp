@@ -10,19 +10,19 @@
 #include <cstdlib>
 #include <iostream>
 
-// Material z .mtl. Ambient (Ka) se NEPREBIRA: Blender exportuje skoro vzdy Ka = 1,
-// takze by model vypadal jako bez osvetleni. Ambient se nastavuje v kodu sceny.
 static Material readMaterial(const aiMaterial* source) {
     Material material;
 
     aiColor3D specular(1.0f, 1.0f, 1.0f);
+
     if (source->Get(AI_MATKEY_COLOR_SPECULAR, specular) == AI_SUCCESS) {
         material.specular = glm::vec3(specular.r, specular.g, specular.b);
     }
 
     float shininess = 0.0f;
+    
     if (source->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS && shininess >= 1.0f) {
-        material.shininess = shininess;     // Ns < 1 by znamenalo odlesk pres cely povrch -> vychozi
+        material.shininess = shininess;
     }
 
     return material;
@@ -59,6 +59,7 @@ LoadedModel ModelLoader::load(const std::string& path, bool mergeColors) {
 
         for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
             const aiFace& face = mesh->mFaces[f];
+    
             if (face.mNumIndices != 3) {
                 continue;
             }
@@ -70,6 +71,7 @@ LoadedModel ModelLoader::load(const std::string& path, bool mergeColors) {
                 const aiVector3D uv = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][i] : aiVector3D(0.0f);
 
                 data.insert(data.end(), {p.x, p.y, p.z, n.x, n.y, n.z, uv.x, uv.y});
+            
                 if (mergeColors) {
                     data.insert(data.end(), {color.r, color.g, color.b});
                 }

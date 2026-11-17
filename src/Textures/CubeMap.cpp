@@ -7,11 +7,13 @@
 #include <iostream>
 
 CubeMap::CubeMap(const std::string& directory, const std::string& extension) {
+    
     if (tryLoad(directory, extension)) {
         return;
     }
 
     const bool isDefault = directory == DEFAULT_DIRECTORY && extension == DEFAULT_EXTENSION;
+    
     if (!isDefault) {
         std::cerr << "WARNING: cube map " << directory << " -> using default " << DEFAULT_DIRECTORY << std::endl;
         if (tryLoad(DEFAULT_DIRECTORY, DEFAULT_EXTENSION)) {
@@ -26,9 +28,11 @@ CubeMap::CubeMap(const std::string& directory, const std::string& extension) {
 std::array<std::string, 6> CubeMap::facePaths(const std::string& directory, const std::string& extension) {
     static const char* FACES[] = { "right", "left", "top", "bottom", "front", "back" };
     std::array<std::string, 6> paths;
+    
     for (int i = 0; i < 6; ++i) {
         paths[i] = directory + "/" + FACES[i] + extension;
     }
+    
     return paths;
 }
 
@@ -38,7 +42,6 @@ bool CubeMap::tryLoad(const std::string& directory, const std::string& extension
     int size = 0;
     bool ok = true;
 
-    // nejdriv nacist a zkontrolovat vsechny steny, teprve pak nahrat na GPU
     stbi_set_flip_vertically_on_load(false);
     for (int i = 0; i < 6 && ok; ++i) {
         int width = 0, height = 0, channels = 0;

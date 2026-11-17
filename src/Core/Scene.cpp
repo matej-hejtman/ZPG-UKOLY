@@ -14,11 +14,6 @@
 #include <filesystem>
 #include <iostream>
 
-// ======================================
-// Vychozi zaklad kazde sceny
-// ======================================
-
-// vychozi textura podlahy a skybox jsou Texture::DEFAULT_PATH a CubeMap::DEFAULT_DIRECTORY
 static const glm::vec3 DEFAULT_CAMERA_POSITION = glm::vec3(0.0f, 1.7f, 0.0f);
 
 Scene::Scene(Resources& resources) : resources(resources) {
@@ -36,10 +31,8 @@ void Scene::build() {
 }
 
 void Scene::createDefaults() {
-    // kamera uprostred, pohled podel -Z
     camera.setPosition(DEFAULT_CAMERA_POSITION, 90.0f, -90.0f);
 
-    // podlaha 20x20, Kind::Ground -> da se na ni klikem vkladat
     Material floorMaterial;
     floorMaterial.ambient = glm::vec3(0.25f);
     floorMaterial.specular = glm::vec3(0.3f);
@@ -51,7 +44,6 @@ void Scene::createDefaults() {
 
     setSkybox(resources.getSkybox(CubeMap::DEFAULT_DIRECTORY));
 
-    // HUD: zatim prazdny, prvky se pridavaji pres createHudObject()
     hudProgram = resources.getShader("hud.vert", "hud.frag");
 }
 
@@ -77,20 +69,15 @@ void Scene::activate(int width, int height) {
 
 void Scene::resize(int width, int height) {
     if (width <= 0 || height <= 0) {
-        return;     // minimalizovane okno
+        return;
     }
 
     viewportWidth = width;
     viewportHeight = height;
     hudAspect = static_cast<float>(width) / static_cast<float>(height);
 
-    // kamera je subject: setAspect -> notifyAll -> shadery dostanou novou projekci
     camera.setAspect(width, height);
 }
-
-// ======================================
-// Objekty
-// ======================================
 
 DrawableObject* Scene::createObject(Model* model, ShaderProgram* program, Transformation* transformation) {
     ownedObjects.push_back(std::make_unique<DrawableObject>(model, program, transformation));
@@ -172,7 +159,9 @@ void Scene::addStatic(DrawableObject* object) {
 
 bool Scene::remove(DrawableObject* object) {
     for (std::vector<DrawableObject*>* list : { &objects, &hudObjects, &staticObjects }) {
+        
         auto it = std::find(list->begin(), list->end(), object);
+        
         if (it != list->end()) {
             list->erase(it);
             releaseId(object);
@@ -180,6 +169,7 @@ bool Scene::remove(DrawableObject* object) {
             if (object == ground) {
                 ground = nullptr;
             }
+
             return true;
         }
     }
@@ -201,12 +191,8 @@ DrawableObject* Scene::getObjectById(unsigned id) const {
     return nullptr;
 }
 
-// ======================================
-// HUD
-// ======================================
 
 DrawableObject* Scene::createHudObject(Model* model, HudAnchor anchor, const glm::vec2& offset, float scale) {
-    // HUD transformace NENI napojena na base -> neovlivni ji posun / rotace / zoom sceny
     HudPlacement* placement = make<HudPlacement>(&hudAspect, anchor, offset, scale);
 
     ownedObjects.push_back(std::make_unique<DrawableObject>(model, hudProgram, placement));
@@ -220,10 +206,6 @@ bool Scene::isHud(const DrawableObject* object) const {
     return std::find(hudObjects.begin(), hudObjects.end(), object) != hudObjects.end();
 }
 
-// ======================================
-// Picking
-// ======================================
-
 Scene::PickResult Scene::pick(int x, int y) const {
     PickResult result;
 
@@ -231,7 +213,7 @@ Scene::PickResult Scene::pick(int x, int y) const {
         return result;
     }
 
-    const int glY = viewportHeight - 1 - y;    // OpenGL ma pocatek vlevo dole
+    const int glY = viewportHeight - 1 - y;
 
     GLfloat depth = 1.0f;
     GLuint index = 0;
@@ -251,9 +233,6 @@ Scene::PickResult Scene::pick(int x, int y) const {
     return result;
 }
 
-// ======================================
-// Vykresleni
-// ======================================
 
 void Scene::draw() const {
     if (skybox) {
@@ -261,9 +240,9 @@ void Scene::draw() const {
         skybox->draw();
     }
 
-    // svetla do UBO: kazde si spocita pozici a smer ze sve transformace (Light::toData)
     std::vector<LightData> data;
     for (const auto& light : lights) {
+        
         if (!light->isEnabled()) {
             continue;
         }
@@ -292,24 +271,21 @@ void Scene::draw() const {
         object->draw();
     }
 
-    // HUD navrch: vlastni ortho projekce, bez kamery a bez hloubky
     if (hudProgram && !hudObjects.empty()) {
         hudProgram->use();
         hudProgram->setUniform("projectionMatrix", glm::ortho(-hudAspect, hudAspect, -1.0f, 1.0f, -1.0f, 1.0f));
 
         glDisable(GL_DEPTH_TEST);
+        
         for (DrawableObject* object : hudObjects) {
             object->draw();
         }
+        
         glEnable(GL_DEPTH_TEST);
     }
 
     ShaderProgram::unbind();
 }
-
-// ======================================
-// Gettery / settery
-// ======================================
 
 DrawableObject* Scene::getGround() const {
     return ground;
@@ -330,8 +306,9 @@ Light* Scene::addLight(bool attachToBase) {
     Light* light = lights.back().get();
 
     if (attachToBase) {
-        light->getTransformation().addDynamic(&base);   // jako makeComposite()
+        light->getTransformation().addDynamic(&base);
     }
+
     return light;
 }
 
@@ -359,6 +336,7 @@ const glm::vec3& Scene::getAmbientLight() const {
 
 void Scene::setSkybox(Skybox* value) {
     skybox = value;
+    
     if (skybox) {
         registerProgram(skybox->getProgram());
     }

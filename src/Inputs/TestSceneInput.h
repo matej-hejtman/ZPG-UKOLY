@@ -4,8 +4,6 @@
 
 class TestScene;
 
-// Input TestScene. Drzi TestScene& (ne Scene&), aby mohl volat jeji metody bez pretypovani.
-// Kliknuti se pridavaji prepsanim onHudClick / onGroundClick / onObjectClick / onBackgroundClick.
 class TestSceneInput : public SceneInput {
 public:
     explicit TestSceneInput(TestScene& scene);

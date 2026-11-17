@@ -4,7 +4,6 @@
 void TransformationComposite::addStatic(const Transformation& transformation) {
     const glm::mat4 matrix = transformation.getMatrix();
 
-    // posledni cast je taky staticka -> spojit do jedne matice (mene nasobeni pri kresleni)
     if (!children.empty() && !ownedStatic.empty() && children.back() == ownedStatic.back().get()) {
         ownedStatic.back() = std::make_unique<CustomMatrix>(ownedStatic.back()->getMatrix() * matrix);
         children.back() = ownedStatic.back().get();

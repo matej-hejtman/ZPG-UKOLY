@@ -26,8 +26,10 @@ void LightBuffer::update(const std::vector<LightData>& lights, const glm::vec3& 
 
 	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(LightBufferHeader), &header);
+	
 	if (count > 0) {
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(LightBufferHeader), sizeof(LightData) * count, lights.data());
 	}
+	
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

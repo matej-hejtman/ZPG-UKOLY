@@ -11,9 +11,6 @@
 
 struct GLFWwindow;
 
-// Okno, hlavni smycka a prepinani scen.
-// O obsahu scen nic nevi: kazda scena ma svuj input a Application
-// jen predava GLFW udalosti (nejdriv MainInput, pak input aktivni sceny).
 class Application {
 public:
     Application();
@@ -23,7 +20,6 @@ public:
     void createScenes();
     void run();
 
-    // pro MainInput
     void close();
     void switchScene(int step);
     void toggleFullscreen();
@@ -34,11 +30,10 @@ private:
         std::unique_ptr<SceneInput> input;
     };
 
-    // scena + jeji input; InputT dostane konkretni typ sceny (SceneT&)
     template <class SceneT, class InputT>
     void addScene() {
         auto scene = std::make_unique<SceneT>(*resources);
-        scene->build();     // vychozi zaklad + create()
+        scene->build();
         auto input = std::make_unique<InputT>(*scene);
         scenes.push_back({ std::move(scene), std::move(input) });
     }

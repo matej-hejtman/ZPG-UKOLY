@@ -17,6 +17,7 @@ static std::string readFile(const std::string& path) {
 
     std::stringstream buffer;
     buffer << file.rdbuf();
+
     return buffer.str();
 }
 
@@ -31,6 +32,7 @@ Shader::Shader(GLenum type, const std::string& path)
 
     GLint status = GL_FALSE;
     glGetShaderiv(id, GL_COMPILE_STATUS, &status);
+
     if (status == GL_FALSE) {
         GLint logLength = 0;
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &logLength);

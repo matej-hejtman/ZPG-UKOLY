@@ -7,9 +7,6 @@
 #include <string>
 #include <vector>
 
-// Skladani transformaci (vysledek = prvni * druha * ...), da se vnorovat.
-//   addStatic  ... matice se spocita hned a ulozi (po sobe jdouci staticke se spoji do jedne)
-//   addDynamic ... ulozi se ukazatel, matice se pocita pri kazdem getMatrix() (animace, sdileni)
 class TransformationComposite : public Transformation {
 public:
     void addStatic(const Transformation& transformation);
@@ -18,7 +15,7 @@ public:
     glm::mat4 getMatrix() const override;
 
     std::size_t size() const;
-    std::string describe() const;   // napr. "S D S" (staticka / dynamicka cast)
+    std::string describe() const;
 
 private:
     bool isOwnedStatic(const Transformation* transformation) const;

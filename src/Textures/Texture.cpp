@@ -13,8 +13,7 @@ Texture::Texture(const std::string& requestedPath, const TextureOptions& options
     unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, 4);
 
     if (!pixels && path != DEFAULT_PATH) {
-        std::cerr << "WARNING: unable to load texture " << path << ": " << stbi_failure_reason()
-                  << " -> using default " << DEFAULT_PATH << std::endl;
+        std::cerr << "WARNING: unable to load texture " << path << ": " << stbi_failure_reason() << " -> using default " << DEFAULT_PATH << std::endl;
         path = DEFAULT_PATH;
         pixels = stbi_load(path.c_str(), &width, &height, &channels, 4);
     }

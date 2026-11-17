@@ -79,7 +79,6 @@ GLint ShaderProgram::getUniformLocation(const std::string& name) {
     }
 
 #ifndef NDEBUG
-    // setUniform program neprepina -> musi byt aktivni (use() pred nastavovanim uniformu)
     if (location != -1 && !isActive()) {
         std::cerr << "ERROR: setUniform(\"" << name << "\") on inactive program (" << description << "), call use() first" << std::endl;
     }
@@ -141,6 +140,7 @@ void ShaderProgram::onCameraChanged(Camera* camera) {
     use();
     setUniform("viewMatrix", camera->getViewMatrix());
     setUniform("projectionMatrix", camera->getProjectionMatrix());
+
     if (hasUniform("cameraPosition")) {
         setUniform("cameraPosition", camera->getEye());
     }
@@ -152,9 +152,11 @@ bool ShaderProgram::hasUniformBlock(const std::string& blockName) const {
 
 void ShaderProgram::bindUniformBlock(const std::string& blockName, GLuint bindingPoint) {
     const GLuint blockIndex = glGetUniformBlockIndex(id, blockName.c_str());
+    
     if (blockIndex == GL_INVALID_INDEX) {
         std::cerr << "Uniform block " << blockName << " NENALEZEN (" << description << ")" << std::endl;
         return;
     }
+    
     glUniformBlockBinding(id, blockIndex, bindingPoint);
 }

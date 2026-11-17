@@ -17,7 +17,6 @@ Resources::Resources() : lightBuffer(std::make_unique<LightBuffer>()) {}
 Resources::~Resources() = default;
 
 std::string Resources::normalize(const std::string& path) {
-    // "./a/../b\\c.png" -> "b/c.png"
     return std::filesystem::path(path).lexically_normal().generic_string();
 }
 

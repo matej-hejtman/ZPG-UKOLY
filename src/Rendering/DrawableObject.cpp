@@ -11,11 +11,10 @@ void DrawableObject::draw() const {
         return;
     }
 
-    // jednou aktivovat program, pak vsechny uniformy (setUniform program neprepina)
     program->use();
     program->setUniform("modelMatrix", transformation->getMatrix());
     program->setUniform("objectColor", color);
-    material.apply(program);    // koeficienty + textura
+    material.apply(program);
 
     glStencilFunc(GL_ALWAYS, static_cast<GLint>(id), 0xFF);
     model->draw();

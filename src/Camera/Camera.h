@@ -29,7 +29,6 @@ public:
     void setFov(float degrees);
     float getFov() const;
 
-    // jak daleko kamera vidi (musi byt vetsi nez near plane)
     void setFarPlane(float distance);
     float getFarPlane() const;
 

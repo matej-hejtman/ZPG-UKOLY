@@ -64,7 +64,6 @@ void SceneInput::processPendingClick(GLFWwindow* window) {
     }
     clickPending = false;
 
-    // kurzor je v souradnicich okna, framebuffer muze mit jine rozliseni (HiDPI)
     int windowWidth = 0, windowHeight = 0, width = 0, height = 0;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
     glfwGetFramebufferSize(window, &width, &height);

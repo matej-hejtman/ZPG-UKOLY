@@ -62,6 +62,7 @@ void Light::setDirection(const glm::vec3& value) {
         std::cerr << "WARNING: light direction is zero, ignored" << std::endl;
         return;
     }
+
     direction = glm::normalize(value);
 }
 
@@ -114,9 +115,6 @@ LightData Light::toData() const {
     data.color = glm::vec4(color, 1.0f);
     data.attenuation = glm::vec4(constant, linear, quadratic, 0.0f);
     data.direction = glm::vec4(worldDirection, 0.0f);
-    data.params = glm::vec4(static_cast<float>(type),
-                            std::cos(glm::radians(cutOffDeg)),
-                            std::cos(glm::radians(outerCutOffDeg)),
-                            0.0f);
+    data.params = glm::vec4(static_cast<float>(type), std::cos(glm::radians(cutOffDeg)), std::cos(glm::radians(outerCutOffDeg)), 0.0f);
     return data;
 }

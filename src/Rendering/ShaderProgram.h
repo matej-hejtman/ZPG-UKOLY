@@ -17,7 +17,6 @@ public:
     ShaderProgram(const ShaderProgram&) = delete;
     ShaderProgram& operator=(const ShaderProgram&) = delete;
 
-    // aktivuje program (glUseProgram jen kdyz uz neni aktivni)
     void use() const;
     static void unbind();
     bool isActive() const;
@@ -25,8 +24,6 @@ public:
 	void bindUniformBlock(const std::string& blockName, GLuint bindingPoint);
     bool hasUniformBlock(const std::string& blockName) const;
 
-    // setUniform program NEPREPINA: nejdriv use(), pak uniformy
-    // (OpenGL 3.3 nema glProgramUniform*; v debug buildu se hlida, ze je program aktivni)
     void setUniform(const std::string& name, int value);
     void setUniform(const std::string& name, float value);
     void setUniform(const std::string& name, const glm::vec3& value);
@@ -40,7 +37,7 @@ public:
 private:
     GLint getUniformLocation(const std::string& name);
 
-    static GLuint activeProgram;    // posledni program predany glUseProgram
+    static GLuint activeProgram;
 
     GLuint id = 0;
     std::string description;

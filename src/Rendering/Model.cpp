@@ -1,10 +1,6 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Rendering/Model.h"
 
-// ======================================
-// VertexLayout - bezne rozlozeni
-// ======================================
-
 VertexLayout VertexLayout::position() {
     return { 3, -1, -1, -1 };
 }
@@ -29,18 +25,12 @@ VertexLayout VertexLayout::positionNormalUvColor() {
     return { 11, 3, 6, 8 };
 }
 
-// ======================================
-// Model
-// ======================================
-
 static void enableAttribute(GLuint location, int components, GLsizei stride, int offsetFloats) {
     glEnableVertexAttribArray(location);
     glVertexAttribPointer(location, components, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetFloats * sizeof(float)));
 }
 
-Model::Model(const float* data, std::size_t floatCount, const VertexLayout& layout)
-    : vertexCount(static_cast<GLsizei>(floatCount / layout.floatsPerVertex)),
-      hasNormal(layout.normalOffset >= 0), hasUV(layout.uvOffset >= 0), hasColor(layout.colorOffset >= 0) {
+Model::Model(const float* data, std::size_t floatCount, const VertexLayout& layout) : vertexCount(static_cast<GLsizei>(floatCount / layout.floatsPerVertex)), hasNormal(layout.normalOffset >= 0), hasUV(layout.uvOffset >= 0), hasColor(layout.colorOffset >= 0) {
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, floatCount * sizeof(float), data, GL_STATIC_DRAW);
@@ -75,7 +65,6 @@ Model::~Model() {
 void Model::draw() const {
     glBindVertexArray(vao);
 
-    // vypnuty atribut cte "aktualni hodnotu" -> nastavit vychozi
     if (!hasNormal) {
         glVertexAttrib3f(VertexAttribute::Normal, 0.0f, 1.0f, 0.0f);
     }

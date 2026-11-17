@@ -15,10 +15,6 @@ Application::Application() = default;
 
 Application::~Application() = default;
 
-// ======================================
-// Inicializace
-// ======================================
-
 void Application::initialization() {
     glfwSetErrorCallback(errorCallback);
 
@@ -76,19 +72,11 @@ void Application::initialization() {
     resources = std::make_unique<Resources>();
 }
 
-// ======================================
-// Sceny - nova scena = jeden radek
-// ======================================
-
 void Application::createScenes() {
     addScene<TestScene, TestSceneInput>();
 
     activateScene(0);
 }
-
-// ======================================
-// Hlavni smycka
-// ======================================
 
 void Application::run() {
     double lastTime = glfwGetTime();
@@ -102,7 +90,7 @@ void Application::run() {
 
         if (entry) {
             entry->input->update(window, deltaTime);
-            entry->scene->tick(deltaTime);  // hodiny sceny + update()
+            entry->scene->tick(deltaTime);
 
             const glm::vec3& background = entry->scene->getClearColor();
             glClearColor(background.r, background.g, background.b, 1.0f);
@@ -112,14 +100,13 @@ void Application::run() {
 
         if (entry) {
             entry->scene->draw();
-            entry->input->processPendingClick(window);  // picking cte prave vykresleny snimek
+            entry->input->processPendingClick(window);
         }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // GL objekty musi zaniknout driv nez kontext
     scenes.clear();
     resources.reset();
 
@@ -128,9 +115,6 @@ void Application::run() {
     glfwTerminate();
 }
 
-// ======================================
-// Sceny
-// ======================================
 
 Application::SceneEntry* Application::active() {
     return activeScene < scenes.size() ? &scenes[activeScene] : nullptr;
@@ -178,9 +162,6 @@ void Application::toggleFullscreen() {
     fullscreen = !fullscreen;
 }
 
-// ======================================
-// GLFW callbacky -> MainInput / input aktivni sceny
-// ======================================
 
 Application* Application::from(GLFWwindow* window) {
     return static_cast<Application*>(glfwGetWindowUserPointer(window));
@@ -251,7 +232,6 @@ void Application::framebufferSizeCallback(GLFWwindow* window, int width, int hei
         return;
     }
 
-    // aktivni scena hned (kamera + HUD), ostatni pri prepnuti v activateScene()
     if (SceneEntry* entry = app->active()) {
         entry->scene->resize(width, height);
     }

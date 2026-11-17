@@ -6,14 +6,6 @@ struct GLFWwindow;
 class DrawableObject;
 class Scene;
 
-// Zaklad inputu kazde sceny:
-//   W/S/A/D/Q/E ... pohyb kamery, Shift ... rychleji
-//   prave tlacitko + mys ... rozhlizeni
-//   kolecko ... FOV po 15 stupnich (kamera jako observer to propise do shaderu)
-//   leve tlacitko ... kliknuti -> onHudClick / onGroundClick / onObjectClick / onBackgroundClick
-//
-// Input konkretni sceny z nej dedi a prepise, co potrebuje.
-// Co se po kliknuti stane, je vec konkretni sceny (vychozi implementace nedelaji nic).
 class SceneInput {
 public:
     explicit SceneInput(Scene& scene);
@@ -26,10 +18,8 @@ public:
     virtual void onMouseMove(GLFWwindow* window, double dx, double dy);
     virtual void onScroll(GLFWwindow* window, double dx, double dy);
 
-    // kazdy snimek: drzene klavesy
     virtual void update(GLFWwindow* window, float deltaTime);
 
-    // vola Application po draw() a pred swapem (cteni stencilu / hloubky)
     void processPendingClick(GLFWwindow* window);
 
 protected:

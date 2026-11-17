@@ -33,10 +33,6 @@ void Material::apply(ShaderProgram* program) const {
     }
 }
 
-// ======================================
-// Predvolby (klasicka tabulka materialu, shininess = koeficient * 128)
-// ======================================
-
 static Material make(const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, float shininess) {
     Material material;
     material.ambient = ambient;

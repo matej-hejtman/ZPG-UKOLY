@@ -62,7 +62,6 @@ const float texturedFloor[48] = {
     -10.0f, 0.0f, -10.0f,  0.0f, 1.0f, 0.0f,   0.0f, 10.0f,
 };
 
-// HUD ctverec 1x1 se stredem v 0,0 (pozice + barva), barvu meni objectColor
 const float hudQuad[36] = {
     -0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,
      0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,

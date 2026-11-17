@@ -20,22 +20,18 @@ public:
 
     Model* getModel() const;
 
-    // POZOR: novy shader musi byt pripojeny ke kamere sceny -> scene.registerProgram(shader)
     void setProgram(ShaderProgram* value);
     ShaderProgram* getProgram() const;
 
     void setTransformation(Transformation* value);
     Transformation* getTransformation() const;
 
-    // POZOR: setMaterial prepise i texturu (je soucasti materialu)
     void setMaterial(const Material& value);
     const Material& getMaterial() const;
 
-    // zkratka pro material.texture, nullptr = bez textury
     void setTexture(Texture* value);
     Texture* getTexture() const;
 
-    // skryty objekt se nekresli a neda se na nej kliknout, ale zustava ve scene i s ID
     void setVisible(bool value);
     bool isVisible() const;
 
