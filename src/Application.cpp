@@ -4,6 +4,7 @@
 #include "Scenes/TestScene.h"
 #include "Inputs/TestSceneInput.h"
 #include "Scenes/ShowcaseScene.h"
+#include "Inputs/ShowcaseInput.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -19,7 +20,7 @@ void Application::createScenes() {
 //  addScene<Scene, SceneInput>();
 
     addScene<TestScene, TestSceneInput>();
-    addScene<ShowcaseScene, SceneInput>();
+    addScene<ShowcaseScene, ShowcaseInput>();
 
     activateScene(0);
 }
