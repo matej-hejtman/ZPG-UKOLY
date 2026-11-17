@@ -44,7 +44,7 @@ add_executable(ZPG ${SOURCES} ${HEADERS})
 # All paths are relative to the project root - no absolute paths
 target_include_directories(ZPG PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/assets/models/headers
+    ${CMAKE_SOURCE_DIR}/assets/models
     ${CMAKE_SOURCE_DIR}/libs/glad/include
     ${CMAKE_SOURCE_DIR}/libs/glm
     ${CMAKE_SOURCE_DIR}/libs/stb)

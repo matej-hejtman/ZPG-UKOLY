@@ -1,7 +1,7 @@
 // Author: Matej Hejtman, login: HEJ0094
 #version 330 core
 
-#define MAX_LIGHTS 8    // musi sedet s MAX_LIGHTS v LightBuffer.h
+#define MAX_LIGHTS 64   // musi sedet s MAX_LIGHTS v LightBuffer.h
 
 in vec3 worldPosition;
 in vec3 worldNormal;
@@ -21,14 +21,15 @@ struct LightSource {
     vec4 color;
     vec4 attenuation;   // x = constant, y = linear, z = quadratic
     vec4 direction;
-    vec4 params;        // x = typ (0 point, 1 directional, 2 spot), y = cutOff, z = outerCutOff
+    vec4 params;        // x = typ (0 point, 1 directional, 2 spot), y = cos(vnitrni uhel), z = cos(vnejsi uhel)
 };
 
+// stejne rozlozeni jako LightBufferHeader + pole LightData v LightBuffer.h
 layout(std140) uniform LightBuffer {
+    ivec4 lightInfo;        // x = pocet svetel
+    vec4 ambientLight;      // rgb = ambientni svetlo sceny
     LightSource lights[MAX_LIGHTS];
 };
-
-uniform int numberOfLights = 0;
 
 uniform vec3 objectColor = vec3(1.0);
 uniform Material material;
@@ -58,9 +59,10 @@ void main() {
     vec3 n = normalize(worldNormal);
     vec3 c = normalize(cameraPosition - worldPosition);
 
-    vec3 result = material.ambient * baseColor;
+    vec3 result = material.ambient * ambientLight.rgb * baseColor;
 
-    for (int i = 0; i < numberOfLights; i++) {
+    int lightCount = min(lightInfo.x, MAX_LIGHTS);
+    for (int i = 0; i < lightCount; i++) {
         int type = int(lights[i].params.x);
         vec3 lightColor = lights[i].color.rgb;
 

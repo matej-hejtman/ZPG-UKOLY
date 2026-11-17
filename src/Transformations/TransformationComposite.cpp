@@ -1,25 +1,17 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Transformations/TransformationComposite.h"
 
-TransformationComposite::StaticMatrix::StaticMatrix(const glm::mat4& matrix) : matrix(matrix) {}
-
-glm::mat4 TransformationComposite::StaticMatrix::getMatrix() const {
-    return matrix;
-}
-
-void TransformationComposite::StaticMatrix::multiply(const glm::mat4& other) {
-    matrix = matrix * other;
-}
-
 void TransformationComposite::addStatic(const Transformation& transformation) {
     const glm::mat4 matrix = transformation.getMatrix();
 
+    // posledni cast je taky staticka -> spojit do jedne matice (mene nasobeni pri kresleni)
     if (!children.empty() && !ownedStatic.empty() && children.back() == ownedStatic.back().get()) {
-        ownedStatic.back()->multiply(matrix);
+        ownedStatic.back() = std::make_unique<CustomMatrix>(ownedStatic.back()->getMatrix() * matrix);
+        children.back() = ownedStatic.back().get();
         return;
     }
 
-    ownedStatic.push_back(std::make_unique<StaticMatrix>(matrix));
+    ownedStatic.push_back(std::make_unique<CustomMatrix>(matrix));
     children.push_back(ownedStatic.back().get());
 }
 
@@ -36,21 +28,26 @@ glm::mat4 TransformationComposite::getMatrix() const {
     return matrix;
 }
 
-std::string TransformationComposite::describe() const
-{
+bool TransformationComposite::isOwnedStatic(const Transformation* transformation) const {
+    for (const auto& owned : ownedStatic) {
+        if (owned.get() == transformation) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string TransformationComposite::describe() const {
     std::string text;
-    
+
     for (const Transformation* child : children) {
-        if (!text.empty())
+        if (!text.empty()) {
             text += ' ';
-        text += dynamic_cast<const StaticMatrix*>(child) ? 'S' : 'D';
+        }
+        text += isOwnedStatic(child) ? 'S' : 'D';
     }
 
     return text;
-}
-
-void TransformationComposite::add(Transformation* transformation) {
-    addDynamic(transformation);
 }
 
 std::size_t TransformationComposite::size() const {

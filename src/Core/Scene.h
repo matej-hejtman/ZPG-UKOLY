@@ -1,6 +1,7 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #pragma once
 #include "Camera/Camera.h"
+#include "Core/SceneClock.h"
 #include "Lighting/Light.h"
 #include "Transformations/HudPlacement.h"
 #include "Transformations/Rotate.h"
@@ -10,6 +11,7 @@
 #include "Lighting/LightBuffer.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -25,10 +27,10 @@ class Skybox;
 // Sdilene zdroje (shadery, modely, textury) patri do Resources.
 //
 // Kazda scena ma po build() vychozi zaklad (createDefaults):
-//   - kamera uprostred sceny
+//   - kamera uprostred sceny                                           -> getCamera()->setPosition(...)
 //   - otexturovana podlaha (Kind::Ground, da se na ni klikem vkladat)  -> getGround() / removeGround()
 //   - skybox                                                           -> setSkybox(jiny) / setSkybox(nullptr)
-//   - HUD s podpisem vpravo dole                                       -> getSignature() / remove()
+//   - prazdny HUD                                                      -> createHudObject(...)
 // Konkretni scena to v create() muze zmenit nebo smazat.
 class Scene {
 public:
@@ -49,7 +51,16 @@ public:
     void build();
 
     virtual void create();
+
+    // vola Application jednou za snimek: posune hodiny sceny a zavola update()
+    void tick(float deltaTime);
+
+    // logika konkretni sceny; deltaTime je skutecny cas snimku,
+    // cas animaci (po pauze / zrychleni) je v getClock().getDelta()
     virtual void update(float deltaTime);
+
+    // cas sceny pro animovane transformace, napr. make<DynamicRotate>(getClock(), 90.0f, osa)
+    SceneClock& getClock();
 
     // vola Application pri prepnuti na tuto scenu
     void activate(int width, int height);
@@ -61,6 +72,10 @@ public:
 
     // vytvori objekt, scena ho vlastni a rovnou ho prida (vybiratelny pres stencil)
     DrawableObject* createObject(Model* model, ShaderProgram* program, Transformation* transformation);
+
+    // OBJ model ze sdilenych Resources: kazdy dil = jeden DrawableObject se spolecnou transformaci.
+    // Dil s texturou dostane texturu, dil bez textury (nebo s chybejici) barvu z .mtl.
+    std::vector<DrawableObject*> createObjModel(const std::string& path, ShaderProgram* program, Transformation* transformation, bool mergeColors = false);
 
     // composite uz napojeny na base sceny (posun / rotace / zoom cele sceny)
     TransformationComposite* makeComposite();
@@ -99,15 +114,21 @@ public:
 
     DrawableObject* getGround() const;
     void removeGround();
-    DrawableObject* getSignature() const;
 
     // ---------- ostatni ----------
 
     Camera* getCamera();
 
-    Light* addLight();
+    // svetlo s vlastni transformaci, ve vychozim stavu napojenou na base sceny.
+    // Pripnuti: light->getTransformation().addDynamic(make<DynamicRotate>(...)) apod.
+    // attachToBase = false, kdyz ho pripinas k transformaci objektu (ta uz base obsahuje).
+    Light* addLight(bool attachToBase = true);
+    bool removeLight(Light* light);
     const std::vector<std::unique_ptr<Light>>& getLights() const;
-    void setLightTransformation(Transformation* transformation);
+
+    // ambientni svetlo sceny (nasobi material.ambient), napr. tmavsi a modrejsi pro noc
+    void setAmbientLight(const glm::vec3& value);
+    const glm::vec3& getAmbientLight() const;
 
     void setSkybox(Skybox* value);
     void setClearColor(const glm::vec3& value);
@@ -138,9 +159,10 @@ private:
     std::vector<unsigned> freeIds;
 
     Camera camera;
+    SceneClock clock;
     std::vector<std::unique_ptr<Light>> lights;
     std::vector<ShaderProgram*> programs;
-    Transformation* lightTransformation = nullptr;
+    glm::vec3 ambientLight = glm::vec3(1.0f);
     glm::vec3 clearColor = glm::vec3(0.0f);
     Skybox* skybox = nullptr;
 
@@ -150,7 +172,6 @@ private:
     int viewportHeight = 600;
 
     DrawableObject* ground = nullptr;
-    DrawableObject* signature = nullptr;
 
     Translate controlMove{glm::vec3(0.0f)};
     Rotate controlSpin{0.0f, glm::vec3(0.0f, 1.0f, 0.0f)};

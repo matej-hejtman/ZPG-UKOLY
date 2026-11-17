@@ -114,3 +114,12 @@ const glm::vec3& Camera::getEye() const {
 const glm::vec3& Camera::getTarget() const {
     return target;
 }
+
+void Camera::setFarPlane(float distance) {
+    farPlane = std::max(distance, nearPlane + 0.01f);
+    notifyAll();
+}
+
+float Camera::getFarPlane() const {
+    return farPlane;
+}

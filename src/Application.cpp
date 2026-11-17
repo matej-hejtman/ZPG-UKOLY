@@ -102,7 +102,7 @@ void Application::run() {
 
         if (entry) {
             entry->input->update(window, deltaTime);
-            entry->scene->update(deltaTime);
+            entry->scene->tick(deltaTime);  // hodiny sceny + update()
 
             const glm::vec3& background = entry->scene->getClearColor();
             glClearColor(background.r, background.g, background.b, 1.0f);

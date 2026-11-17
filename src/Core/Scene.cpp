@@ -3,6 +3,7 @@
 #include "Rendering/DrawableObject.h"
 #include "Core/Resources.h"
 #include "Lighting/Material.h"
+#include "Rendering/ModelLoader.h"
 #include "Rendering/ShaderProgram.h"
 #include "Textures/Skybox.h"
 
@@ -10,14 +11,14 @@
 
 #include <string>
 #include <algorithm>
+#include <filesystem>
 #include <iostream>
 
 // ======================================
 // Vychozi zaklad kazde sceny
 // ======================================
 
-static const char* DEFAULT_FLOOR_TEXTURE = "assets/textures/wooden_fence.png";
-static const char* DEFAULT_SKYBOX = "assets/textures/skybox";
+// vychozi textura podlahy a skybox jsou Texture::DEFAULT_PATH a CubeMap::DEFAULT_DIRECTORY
 static const glm::vec3 DEFAULT_CAMERA_POSITION = glm::vec3(0.0f, 1.7f, 0.0f);
 
 Scene::Scene(Resources& resources) : resources(resources) {
@@ -45,20 +46,28 @@ void Scene::createDefaults() {
 
     ground = createObject(resources.getModel("floor"), resources.getShader("lit.vert", "phong.frag"), makeComposite());
     ground->setMaterial(floorMaterial);
-    ground->setTexture(resources.getTexture(DEFAULT_FLOOR_TEXTURE));
+    ground->setTexture(resources.getTexture(Texture::DEFAULT_PATH));
     ground->setKind(DrawableObject::Kind::Ground);
 
-    setSkybox(resources.getSkybox(DEFAULT_SKYBOX));
+    setSkybox(resources.getSkybox(CubeMap::DEFAULT_DIRECTORY));
 
-    // HUD: podpis vpravo dole
+    // HUD: zatim prazdny, prvky se pridavaji pres createHudObject()
     hudProgram = resources.getShader("hud.vert", "hud.frag");
-    signature = createHudObject(resources.getModel("login"), HudAnchor::BottomRight, glm::vec2(-0.28f, 0.07f), 0.25f);
 }
 
 void Scene::create() {}
 
+void Scene::tick(float deltaTime) {
+    clock.advance(deltaTime);
+    update(deltaTime);
+}
+
 void Scene::update(float deltaTime) {
     (void)deltaTime;
+}
+
+SceneClock& Scene::getClock() {
+    return clock;
 }
 
 void Scene::activate(int width, int height) {
@@ -89,6 +98,29 @@ DrawableObject* Scene::createObject(Model* model, ShaderProgram* program, Transf
     registerProgram(program);
     add(object);
     return object;
+}
+
+std::vector<DrawableObject*> Scene::createObjModel(const std::string& path, ShaderProgram* program, Transformation* transformation, bool mergeColors) {
+    const LoadedModel& loaded = resources.getObjModel(path, mergeColors);
+    std::vector<DrawableObject*> created;
+
+    for (const ModelPart& part : loaded.parts) {
+        DrawableObject* object = createObject(part.model.get(), program, transformation);
+        object->setMaterial(part.material);
+
+        if (!part.texturePath.empty() && std::filesystem::exists(part.texturePath)) {
+            object->setTexture(resources.getTexture(part.texturePath));
+        } else {
+            if (!part.texturePath.empty()) {
+                std::cerr << "WARNING: texture not found: " << part.texturePath << " (" << path << ")" << std::endl;
+            }
+            object->setColor(part.diffuseColor);
+        }
+
+        created.push_back(object);
+    }
+
+    return created;
 }
 
 TransformationComposite* Scene::makeComposite() {
@@ -145,8 +177,9 @@ bool Scene::remove(DrawableObject* object) {
             list->erase(it);
             releaseId(object);
 
-            if (object == ground) ground = nullptr;
-            if (object == signature) signature = nullptr;
+            if (object == ground) {
+                ground = nullptr;
+            }
             return true;
         }
     }
@@ -228,43 +261,27 @@ void Scene::draw() const {
         skybox->draw();
     }
 
-    const Transformation* placement = lightTransformation ? lightTransformation : &base;
-
+    // svetla do UBO: kazde si spocita pozici a smer ze sve transformace (Light::toData)
     std::vector<LightData> data;
-    int count = 0;
-
     for (const auto& light : lights) {
         if (!light->isEnabled()) {
             continue;
         }
 
-        if (count >= MAX_LIGHTS) {
+        if (static_cast<int>(data.size()) >= MAX_LIGHTS) {
+            static bool warned = false;
+            if (!warned) {
+                std::cerr << "WARNING: more than " << MAX_LIGHTS << " enabled lights, the rest is ignored" << std::endl;
+                warned = true;
+            }
             break;
         }
 
-        const glm::vec4 transformed = placement->getMatrix() * glm::vec4(light->getPosition(), 1.0f);
-        const glm::vec3 position = glm::vec3(transformed) / transformed.w;
-        const glm::vec3 direction = glm::vec3(placement->getMatrix() * glm::vec4(light->getDirection(), 0.0f));
-
-        data.push_back({
-            glm::vec4(position, 1.0f),
-            glm::vec4(light->getColor(), 1.0f),
-            glm::vec4(light->getConstant(), light->getLinear(), light->getQuadratic(), 0.0f),
-            glm::vec4(direction, 0.0f),
-            glm::vec4(static_cast<float>(light->getType()), light->getCutOff(), light->getOuterCutOff(), 0.0f)
-            });
-
-        ++count;
+        data.push_back(light->toData());
     }
 
     if (lightBuffer) {
-        lightBuffer->update(data);
-    }
-
-    for (ShaderProgram* program : programs) {
-        if (program->hasUniform("numberOfLights")) {
-            program->setUniform("numberOfLights", count);
-        }
+        lightBuffer->update(data, ambientLight);
     }
 
     for (DrawableObject* object : staticObjects) {
@@ -277,6 +294,7 @@ void Scene::draw() const {
 
     // HUD navrch: vlastni ortho projekce, bez kamery a bez hloubky
     if (hudProgram && !hudObjects.empty()) {
+        hudProgram->use();
         hudProgram->setUniform("projectionMatrix", glm::ortho(-hudAspect, hudAspect, -1.0f, 1.0f, -1.0f, 1.0f));
 
         glDisable(GL_DEPTH_TEST);
@@ -303,25 +321,40 @@ void Scene::removeGround() {
     }
 }
 
-DrawableObject* Scene::getSignature() const {
-    return signature;
-}
-
 Camera* Scene::getCamera() {
     return &camera;
 }
 
-Light* Scene::addLight() {
+Light* Scene::addLight(bool attachToBase) {
     lights.push_back(std::make_unique<Light>());
-    return lights.back().get();
+    Light* light = lights.back().get();
+
+    if (attachToBase) {
+        light->getTransformation().addDynamic(&base);   // jako makeComposite()
+    }
+    return light;
+}
+
+bool Scene::removeLight(Light* light) {
+    for (auto it = lights.begin(); it != lights.end(); ++it) {
+        if (it->get() == light) {
+            lights.erase(it);
+            return true;
+        }
+    }
+    return false;
 }
 
 const std::vector<std::unique_ptr<Light>>& Scene::getLights() const {
     return lights;
 }
 
-void Scene::setLightTransformation(Transformation* transformation) {
-    lightTransformation = transformation;
+void Scene::setAmbientLight(const glm::vec3& value) {
+    ambientLight = value;
+}
+
+const glm::vec3& Scene::getAmbientLight() const {
+    return ambientLight;
 }
 
 void Scene::setSkybox(Skybox* value) {

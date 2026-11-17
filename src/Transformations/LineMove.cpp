@@ -1,46 +1,50 @@
 ﻿// Author: Matěj Hejtman, login: HEJ0094
 #include "Transformations/LineMove.h"
+#include "Core/SceneClock.h"
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
 
-LineMove::LineMove(const glm::vec3& a, const glm::vec3& b, float unitsPerSecond, bool faceDirection) : a(a), b(b), unitsPerSecond(unitsPerSecond), faceDirection(faceDirection), startTime(glfwGetTime()) {}
+LineMove::LineMove(const SceneClock& clock, const glm::vec3& a, const glm::vec3& b, float unitsPerSecond, bool faceDirection)
+    : clock(clock), a(a), b(b), unitsPerSecond(unitsPerSecond), faceDirection(faceDirection), startTime(clock.getTime()) {}
 
-float LineMove::getT() const {
+LineMove::State LineMove::getState() const {
+    State state;
     const float length = glm::length(b - a);
     if (length < 1e-4f) {
-        return 0.0f;
+        return state;
     }
 
-    const double s = unitsPerSecond * (glfwGetTime() - startTime) / length;
+    // s roste od 0: 0..1 = cesta tam, 1..2 = cesta zpet, pak se opakuje
+    const double s = std::fmod(unitsPerSecond * (clock.getTime() - startTime) / length, 2.0);
+    state.returning = s >= 1.0;
+    state.t = static_cast<float>(state.returning ? 2.0 - s : s);
+    return state;
+}
 
-    return static_cast<float>(1.0 - std::fabs(1.0 - std::fmod(s, 2.0)));
+float LineMove::getT() const {
+    return getState().t;
 }
 
 bool LineMove::isReturning() const {
-    const float length = glm::length(b - a);
-    if (length < 1e-4f) {
-        return false;
-    }
-
-    const double s = unitsPerSecond * (glfwGetTime() - startTime) / length;
-    return std::fmod(s, 2.0) >= 1.0;
+    return getState().returning;
 }
 
 glm::vec3 LineMove::getPosition() const {
-    const float t = getT();
+    const float t = getState().t;
     return (1.0f - t) * a + t * b;
 }
 
 glm::mat4 LineMove::getMatrix() const {
-    glm::mat4 matrix = glm::translate(glm::mat4(1.0f), getPosition());
+    const State state = getState();
+    const glm::vec3 position = (1.0f - state.t) * a + state.t * b;
+    glm::mat4 matrix = glm::translate(glm::mat4(1.0f), position);
 
     if (faceDirection) {
-        const glm::vec3 direction = isReturning() ? a - b : b - a;
+        const glm::vec3 direction = state.returning ? a - b : b - a;
         if (direction.x != 0.0f || direction.z != 0.0f) {
+            // atan2(x, z): uhel od +Z k +X -> model kouka po +Z
             matrix = glm::rotate(matrix, std::atan2(direction.x, direction.z), glm::vec3(0.0f, 1.0f, 0.0f));
         }
     }

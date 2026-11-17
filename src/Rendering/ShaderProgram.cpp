@@ -34,16 +34,29 @@ ShaderProgram::ShaderProgram(const std::string& vertexPath, const std::string& f
     glDetachShader(id, fragmentShader.getId());
 }
 
+GLuint ShaderProgram::activeProgram = 0;
+
 ShaderProgram::~ShaderProgram() {
+    if (activeProgram == id) {
+        activeProgram = 0;
+    }
     glDeleteProgram(id);
 }
 
 void ShaderProgram::use() const {
-    glUseProgram(id);
+    if (activeProgram != id) {
+        glUseProgram(id);
+        activeProgram = id;
+    }
 }
 
 void ShaderProgram::unbind() {
     glUseProgram(0);
+    activeProgram = 0;
+}
+
+bool ShaderProgram::isActive() const {
+    return activeProgram == id;
 }
 
 GLint ShaderProgram::lookupLocation(const std::string& name) const {
@@ -65,6 +78,13 @@ GLint ShaderProgram::getUniformLocation(const std::string& name) {
         std::cerr << "Uniform " << name << " not found (" << description << ")" << std::endl;
     }
 
+#ifndef NDEBUG
+    // setUniform program neprepina -> musi byt aktivni (use() pred nastavovanim uniformu)
+    if (location != -1 && !isActive()) {
+        std::cerr << "ERROR: setUniform(\"" << name << "\") on inactive program (" << description << "), call use() first" << std::endl;
+    }
+#endif
+
     return location;
 }
 
@@ -74,7 +94,6 @@ void ShaderProgram::setUniform(const std::string& name, int value) {
         return;
     }
 
-    use();
     glUniform1i(location, value);
 }
 
@@ -84,7 +103,6 @@ void ShaderProgram::setUniform(const std::string& name, float value) {
         return;
     }
 
-    use();
     glUniform1f(location, value);
 }
 
@@ -94,7 +112,6 @@ void ShaderProgram::setUniform(const std::string& name, const glm::vec3& value) 
         return;
     }
 
-    use();
     glUniform3fv(location, 1, glm::value_ptr(value));
 }
 
@@ -104,7 +121,6 @@ void ShaderProgram::setUniform(const std::string& name, const glm::vec4& value) 
         return;
     }
 
-    use();
     glUniform4fv(location, 1, glm::value_ptr(value));
 }
 
@@ -114,7 +130,6 @@ void ShaderProgram::setUniform(const std::string& name, const glm::mat4& value) 
         return;
     } 
 
-    use();
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
@@ -123,6 +138,7 @@ bool ShaderProgram::hasUniform(const std::string& name) const {
 }
 
 void ShaderProgram::onCameraChanged(Camera* camera) {
+    use();
     setUniform("viewMatrix", camera->getViewMatrix());
     setUniform("projectionMatrix", camera->getProjectionMatrix());
     if (hasUniform("cameraPosition")) {

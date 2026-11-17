@@ -2,47 +2,38 @@
 #include "Rendering/DrawableObject.h"
 #include "Rendering/Model.h"
 #include "Rendering/ShaderProgram.h"
-#include "Textures/Texture.h"
 #include "Transformations/Transformation.h"
 
 DrawableObject::DrawableObject(Model* model, ShaderProgram* program, Transformation* transformation) : model(model), program(program), transformation(transformation) {}
 
 void DrawableObject::draw() const {
-    program->setUniform("modelMatrix", transformation->getMatrix());
-    program->setUniform("objectColor", color);
-    material.apply(program);
-
-    if (program->hasUniform("hasTexture")) {
-
-        if (texture) {
-            texture->bind(0);
-            program->setUniform("textureUnit", 0);
-            program->setUniform("hasTexture", 1);
-        }
-        else {
-            program->setUniform("hasTexture", 0);
-        }
+    if (!visible) {
+        return;
     }
 
+    // jednou aktivovat program, pak vsechny uniformy (setUniform program neprepina)
     program->use();
+    program->setUniform("modelMatrix", transformation->getMatrix());
+    program->setUniform("objectColor", color);
+    material.apply(program);    // koeficienty + textura
+
     glStencilFunc(GL_ALWAYS, static_cast<GLint>(id), 0xFF);
     model->draw();
 }
 
 const char* DrawableObject::kindName(Kind kind) {
-
     switch (kind) {
-        case Kind::Ground: 
-            return "ground";
-        
-        case Kind::Collectible: 
-            return "collectible";
-        
-        case Kind::Moving: 
-            return "moving";
-        
-        default: 
-            return "normal";
+    case Kind::Ground:
+        return "ground";
+
+    case Kind::Collectible:
+        return "collectible";
+
+    case Kind::Moving:
+        return "moving";
+
+    default:
+        return "normal";
     }
 }
 
@@ -54,16 +45,48 @@ const glm::vec3& DrawableObject::getColor() const {
     return color;
 }
 
+Model* DrawableObject::getModel() const {
+    return model;
+}
+
 void DrawableObject::setProgram(ShaderProgram* value) {
     program = value;
+}
+
+ShaderProgram* DrawableObject::getProgram() const {
+    return program;
+}
+
+void DrawableObject::setTransformation(Transformation* value) {
+    transformation = value;
+}
+
+Transformation* DrawableObject::getTransformation() const {
+    return transformation;
 }
 
 void DrawableObject::setMaterial(const Material& value) {
     material = value;
 }
 
+const Material& DrawableObject::getMaterial() const {
+    return material;
+}
+
 void DrawableObject::setTexture(Texture* value) {
-    texture = value;
+    material.texture = value;
+}
+
+Texture* DrawableObject::getTexture() const {
+    return material.texture;
+}
+
+void DrawableObject::setVisible(bool value) {
+    visible = value;
+}
+
+bool DrawableObject::isVisible() const {
+    return visible;
 }
 
 void DrawableObject::setId(unsigned value) {
