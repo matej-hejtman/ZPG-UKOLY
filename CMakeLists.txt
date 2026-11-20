@@ -39,7 +39,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/libs/assimp EXCLUDE_FROM_ALL)
 # ---------------------------------------------------------------------------
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.h)
-add_executable(ZPG ${SOURCES} ${HEADERS} "src/Scenes/CV2Scene.h" "src/Scenes/CV2Scene.cpp")
+add_executable(ZPG ${SOURCES} ${HEADERS} "src/Scenes/CV2Scene.h" "src/Scenes/CV2Scene.cpp" "src/Scenes/CV3Scene.h" "src/Scenes/CV4Scene.h" "src/Scenes/CV5Scene.h" "src/Scenes/CV6Scene.h" "src/Scenes/CV7Scene.h" "src/Scenes/CV8Scene.h" "src/Scenes/CV9Scene.h" "src/Scenes/CV10Scene.h" "src/Scenes/CV3Scene.cpp" "src/Scenes/CV4Scene.cpp" "src/Scenes/CV5Scene.cpp" "src/Scenes/CV6Scene.cpp" "src/Scenes/CV7Scene.cpp" "src/Scenes/CV8Scene.cpp" "src/Scenes/CV9Scene.cpp" "src/Scenes/CV10Scene.cpp")
 
 # All paths are relative to the project root - no absolute paths
 target_include_directories(ZPG PRIVATE
