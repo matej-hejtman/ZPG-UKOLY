@@ -8,4 +8,16 @@ public:
 
     void create() override;
     void update(float deltaTime) override;
+
+private:
+    void buildMetalMaterials();
+    void buildPolishedMetalMaterials();
+    void buildPreciousMaterials();
+    void buildPlacticMaterials();
+    void buildRubberMaterials();
+
+    void buildTransformations();
+    void buildAxes(const glm::vec3& origin);
+
+    ShaderProgram* shader = nullptr;
 };

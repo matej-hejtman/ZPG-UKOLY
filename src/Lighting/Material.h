@@ -14,14 +14,42 @@ struct Material {
 
     void apply(ShaderProgram* program) const;
 
+    // ------ METALS ------
     static Material gold();
     static Material silver();
     static Material copper();
     static Material bronze();
+    static Material brass();
     static Material chrome();
-    static Material pearl();
+    static Material pewter();
+
+    // ------ POLISHED METALS ------
+    static Material polishedGold();
+    static Material polishedSilver();
+    static Material polishedCopper();
+    static Material polishedBronze();
+
+    // ------ GEMS & STONES ------
     static Material emerald();
     static Material ruby();
-    static Material plastic();
-    static Material rubber();
+    static Material jade();
+    static Material obsidian();
+    static Material pearl();
+    static Material turquoise();
+
+    // ------ PLASTICS ------
+    static Material blackPlastic();
+    static Material whitePlastic();
+    static Material redPlastic();
+    static Material greenPlastic();
+    static Material cyanPlastic();
+    static Material yellowPlastic();
+
+    // ------ RUBBERS ------
+    static Material blackRubber();
+    static Material whiteRubber();
+    static Material redRubber();
+    static Material greenRubber();
+    static Material cyanRubber();
+    static Material yellowRubber();
 };

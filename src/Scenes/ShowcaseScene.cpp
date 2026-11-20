@@ -85,7 +85,7 @@ static Material glossyMaterial() {
 static std::vector<Material> materialPalette() {
     return {
         Material::gold(), Material::silver(), Material::copper(), Material::bronze(), Material::chrome(),
-        Material::pearl(), Material::emerald(), Material::ruby(), Material::plastic(), Material::rubber(),
+        Material::pearl(), Material::emerald(), Material::ruby(), Material::whitePlastic(), Material::whiteRubber(),
     };
 }
 

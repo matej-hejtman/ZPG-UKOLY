@@ -38,29 +38,64 @@
 
     - privatni promene: time vyjadruje celkovy cas sceny, vychozi je nula. delta je posledni prirustekm vychozi nula dokud neni zavolan advance. Speed ma default hodnotu 1 neboli 1x zrychleno. a paused ma zakladni hodnotu false, jelikoz na zacatku cas neni zastaveny.
 
-    - void advance(float ralDeltaTime);
-    - double getTime() const;
-    - float getDelta() const;
-    - void setPaused(bool value);
-    - bool isPaused() const;
-    - void setSpeed(float value);
-    - bool getSpeed() const;
+    - void advance(float ralDeltaTime); - toto je jedina metoda ktera doopravdy upravuje. Posune cas o realny prirustej vynasobeny rychlosti. Vola se jednou za snimek z hlavni smycky.
+    - double getTime() const; - vraci time, tedy celkovy cass sceny
+    - float getDelta() const; - vraci deltaTime, neboli prirustek casu v poslednim snimku
+    - void setPaused(bool value); - nastavi pozastaveni
+    - bool isPaused() const; - vraci jestli je cas pozastaven
+    - void setSpeed(float value); - nastavuje rychlost plynuti casu
+    - bool getSpeed() const; - vraci rychlost
+
+## Navrhove rozhodnuti
+
+    SceneClock je jediny zdroj casu, vsechny animace ctou cas z jednoho objektu, zmena nebo pauza se tak projevi vsude najednou.
+    SceneClock je oddeleny od realneho a scenoveho casu, advice dostava realny prirustek a sam ho prepocitava, hlavni smycka tak nemusi znat pravidla sceny.
+    Je to naprosto nezavisle, Trida nezna scenu, kameru ani shadery, diky tomuu je jednoduse testovatelna.
+
+## Vztahy k tridam
+
+    DynamicRotate - Drzi const SceneClock& a z nej pocita uhel jako startAngle + degPerSecond * (clock.getTime() - startTime). Zmena rychlosti pres setSpeed ulozi zktualni uhel jako novy pocatecni, aby nedoslo ke skoku.
+    GrowScale - Pracuje s casem z hodin podobnym zpusobem jako v DynamicRotate
+    Scene - Vlastni instanci hodin a cola advance v kazdem snimku.
+    sceny - Napriklad ShowcaseScene cte getTime() pro pohyb kyvadel a sroubovice, getSpeed() a isPaused pro indikatory rychlosti v HUD
 
 # Material
 
+    Material popisuje, jak povrch odrazi svetlo. Je to datova struktura s barevnymi koeficienty Phongova osvetlovaciho modelu (ambient, diffuse a specular), koeficientem lesku a volitelnou texturou. Umi si nahrat sve hodnoty do shadery a obsahuje sadu predpripravenych materialu.
+
+    Narozdil od Transformation nebo ICameraObserver nejde o rozhrani. Materaial je hodnotovy typ, ktery se kopiruje a predava hodnotu.
+
 ## Popis implementace
+
+    glm::vec3 ambient = glm::vec3(0.1f);    - ambientni odrazivost, ktere dopada vsude bezzdroje, mala hodnota zajisti, ze neosvetlene strany nejsou uplne cerne, zakladni je seda
+    glm::vec3 diffuse = glm::vec3(1.0f);    - Difuzni odrazivost slozka, ktera zavisi na uhlu dopadu svetla je to hlavni barva povrchu, zakladni je bila
+    glm::vec3 specular = glm::vec3(0.5f);   - Zrcaslova odrazivost, urcuje barvu a silu leskleho odlesku
+    float shininess = 32.f;                 - koeficient lesku, vyssi hodnota znamena mensi a ostrejsi odlesk.
+    Texture* texture = nullptr;             - Nevlastneny ukazatel na texturu, nullptr znamena BEZ TEXTURY
+
+    void apply(ShaderProgram* program) const;   - Kazda vlastnost se nahravajen tehdy, pokud shader ma odpovidajici uniform, Stejny material tak funguje i s ruznymy shadery, i kdyz nektere neobsahuji vsechny slozky. std::max(shininessm 1.0f) zaruci, ze shinines bude vzy vice nez 1 nebo prave 1
+
+    static Material make(const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, float shininess)
 
 # CustomMatrix
 
-## Popis implementace
+    CustomMatrix obsahuje hotovou 4x4 matici a zpristupnuje ji pomoci rozhrani Transformation. Je to wrappen na glm::mat4 tak, aby se dal vlozit do TransformationComposite nebo aby s nim mohlo byt zachazeno jako s Transformation.
 
 # BasicModels
 
-## Popis implementace
+    BasicModels je jen seznam zakladnich tvaru se kteryma engine pracuje jako napriklad trojuhelnik, cube, skycube atd...
 
 # Texture
 
+    Texture je RAII obal nad OpenGl texturou. Nacte obrazek ze souboru, nahraje pixely do GPU, nastavy zpusob opakovani a filtrovani a pri zaniku objektu na GPU uvolni.
+
+    Mame zde TextureOptions, kde si muzeme vybrat bud repeat nebo pouziti mipmaps. default cesta je assets/textures/Default/default.png ktery jsem delal sam.
+
+    Konstruktor vyzaduje path a TextureOptions. Bind zase pripoji texturu na texturovou jednotku. Settery a gettery vraci hodnoty z porivate casti.
+
 ## Popis implementace
+
+    - V konstruktoru se nastavuje stbi_set_flip_verticaly_on_load(true)
 
 # TextureOptions
 

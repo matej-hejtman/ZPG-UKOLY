@@ -5,6 +5,8 @@
 #include "Inputs/TestSceneInput.h"
 #include "Scenes/ShowcaseScene.h"
 #include "Inputs/ShowcaseInput.h"
+#include "Scenes/CV2Scene.h"
+#include "Inputs/SceneInput.h"
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad/gl.h>
@@ -21,6 +23,7 @@ void Application::createScenes() {
 
     addScene<ShowcaseScene, ShowcaseInput>();
     addScene<TestScene, TestSceneInput>();
+	addScene<CV2Scene, SceneInput>();
 
     activateScene(0);
 }

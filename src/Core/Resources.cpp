@@ -52,8 +52,18 @@ Model* Resources::getModel(const std::string& name) {
         model = std::make_unique<Model>(texturedFloor, sizeof(texturedFloor) / sizeof(float), VertexLayout::positionNormalUv());
     } else if (name == "cube") {
         model = std::make_unique<Model>(cube, sizeof(cube) / sizeof(float), VertexLayout::positionNormalUv());
+    } else if (name == "sphere") {
+        const std::vector<float> data = BasicShapes::sphere();
+        model = std::make_unique<Model>(data.data(), data.size(), VertexLayout::positionNormalUv());
+    } else if (name == "torus") {
+        const std::vector<float> data = BasicShapes::torus();
+        model = std::make_unique<Model>(data.data(), data.size(), VertexLayout::positionNormalUv());
     } else if (name == "hudQuad") {
         model = std::make_unique<Model>(hudQuad, sizeof(hudQuad) / sizeof(float), VertexLayout::positionColor());
+    } else if (name == "triangle") {
+        model = std::make_unique<Model>(triangle, sizeof(triangle) / sizeof(float), VertexLayout::positionColor());
+    } else if (name == "square") {
+        model = std::make_unique<Model>(square, sizeof(square) / sizeof(float), VertexLayout::positionColor());
     }
 
     if (!model) {
