@@ -28,6 +28,8 @@ protected:
     virtual void onObjectClick(DrawableObject* object, const glm::vec3& position);
     virtual void onBackgroundClick();
 
+    float SPRINT_MULTIPLIER = 3.0f;
+
     Scene& scene;
 
 private:

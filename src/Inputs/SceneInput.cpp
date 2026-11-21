@@ -10,7 +10,6 @@
 static const float FOV_STEP = 15.0f;
 static const float FOV_MIN = 15.0f;
 static const float FOV_MAX = 120.0f;
-static const float SPRINT_MULTIPLIER = 3.0f;
 
 SceneInput::SceneInput(Scene& scene) : scene(scene) {}
 

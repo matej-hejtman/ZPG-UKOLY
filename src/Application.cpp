@@ -8,6 +8,7 @@
 #include "Scenes/CV2Scene.h"
 #include "Scenes/CV3Scene.h"
 #include "Scenes/CV4Scene.h"
+#include "Inputs/CV4Input.h"
 #include "Scenes/CV5Scene.h"
 #include "Scenes/CV6Scene.h"
 #include "Scenes/CV7Scene.h"
@@ -34,7 +35,7 @@ void Application::createScenes() {
     addScene<TestScene, TestSceneInput>();
 	addScene<CV2Scene, SceneInput>();
     addScene<CV3Scene, SceneInput>();
-    addScene<CV4Scene, SceneInput>();
+    addScene<CV4Scene, CV4Input>();
     addScene<CV5Scene, SceneInput>();
     addScene<CV6Scene, SceneInput>();
     addScene<CV7Scene, SceneInput>();
