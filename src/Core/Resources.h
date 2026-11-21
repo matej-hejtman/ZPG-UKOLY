@@ -24,6 +24,8 @@ public:
 
     Model* getModel(const std::string& name);
 
+    float getModelBottom(const std::string& name);
+
     const LoadedModel& getObjModel(const std::string& path, bool mergeColors = false);
 
     Texture* getTexture(const std::string& path, const TextureOptions& options = TextureOptions());
@@ -39,6 +41,7 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<ShaderProgram>> shaders;
     std::unordered_map<std::string, std::unique_ptr<Model>> models;
+    std::unordered_map<std::string, float> modelBottoms;
     std::unordered_map<std::string, std::unique_ptr<LoadedModel>> objModels;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
     std::unordered_map<std::string, std::unique_ptr<CubeMap>> cubeMaps;

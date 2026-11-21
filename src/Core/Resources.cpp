@@ -2,13 +2,90 @@
 #include "Core/Resources.h"
 #include "Lighting/LightBuffer.h"
 #include "Rendering/BasicModels.h"
+#include "forest_models/forest_all.h"
 #include "Rendering/Model.h"
 #include "Rendering/ModelLoader.h"
 #include "Rendering/ShaderProgram.h"
 #include "Textures/Skybox.h"
+#include "text_models/hej0094.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+struct ForestModel {
+    const char* name;
+    const float* data;
+    std::size_t floatCount;
+};
+
+#define FOREST_MODEL(n) { #n, n, sizeof(n) / sizeof(float) }
+static const ForestModel FOREST_MODELS[] = {
+    FOREST_MODEL(tree_pine),
+    FOREST_MODEL(tree_oak),
+    FOREST_MODEL(tree_birch),
+    FOREST_MODEL(bush_round),
+    FOREST_MODEL(bush_berry),
+    FOREST_MODEL(bush_fern),
+    FOREST_MODEL(flower_daisy),
+    FOREST_MODEL(flower_tulip),
+    FOREST_MODEL(flower_bluebell),
+    FOREST_MODEL(flower_poppy),
+    FOREST_MODEL(flower_lavender),
+    FOREST_MODEL(rock_small),
+    FOREST_MODEL(rock_medium),
+    FOREST_MODEL(rock_boulder),
+    FOREST_MODEL(rock_mossy),
+    FOREST_MODEL(rock_cluster),
+    FOREST_MODEL(pebbles),
+    FOREST_MODEL(stepping_stones),
+    FOREST_MODEL(tree_stump),
+    FOREST_MODEL(stump_with_axe),
+    FOREST_MODEL(log_fallen),
+    FOREST_MODEL(log_mossy),
+    FOREST_MODEL(branch),
+    FOREST_MODEL(firewood_pile),
+    FOREST_MODEL(mushroom_red),
+    FOREST_MODEL(mushroom_brown),
+    FOREST_MODEL(mushroom_cluster),
+    FOREST_MODEL(grass_tuft),
+    FOREST_MODEL(tall_grass),
+    FOREST_MODEL(cattails),
+    FOREST_MODEL(pine_cone),
+    FOREST_MODEL(leaf_pile),
+    FOREST_MODEL(dead_tree),
+    FOREST_MODEL(sapling_pine),
+    FOREST_MODEL(campfire),
+    FOREST_MODEL(fence),
+    FOREST_MODEL(signpost),
+    FOREST_MODEL(bench),
+    FOREST_MODEL(wooden_bridge),
+    FOREST_MODEL(tent),
+    FOREST_MODEL(barrel),
+    FOREST_MODEL(birdhouse),
+    FOREST_MODEL(ruin_pillar),
+    FOREST_MODEL(lily_pads),
+    FOREST_MODEL(terrain),
+    FOREST_MODEL(water),
+};
+#undef FOREST_MODEL
+
+static const ForestModel* findForestModel(const std::string& name) {
+    for (const ForestModel& forestModel : FOREST_MODELS) {
+        if (name == forestModel.name) {
+            return &forestModel;
+        }
+    }
+    return nullptr;
+}
+
+static float lowestY(const float* data, std::size_t floatCount, std::size_t floatsPerVertex) {
+    float minY = data[1];
+    for (std::size_t i = 0; i + 1 < floatCount; i += floatsPerVertex) {
+        minY = std::min(minY, data[i + 1]);
+    }
+    return minY;
+}
 
 static const std::string SHADER_DIR = "assets/shaders/";
 
@@ -64,6 +141,14 @@ Model* Resources::getModel(const std::string& name) {
         model = std::make_unique<Model>(triangle, sizeof(triangle) / sizeof(float), VertexLayout::positionColor());
     } else if (name == "square") {
         model = std::make_unique<Model>(square, sizeof(square) / sizeof(float), VertexLayout::positionColor());
+    } else if (name == "login") {
+        model = std::make_unique<Model>(hej0094, sizeof(hej0094) / sizeof(float), VertexLayout::positionNormalUv());
+    }
+
+    if (!model) {
+        if (const ForestModel* forestModel = findForestModel(name)) {
+            model = std::make_unique<Model>(forestModel->data, forestModel->floatCount, VertexLayout::positionNormalUv());
+        }
     }
 
     if (!model) {
@@ -74,6 +159,30 @@ Model* Resources::getModel(const std::string& name) {
     Model* pointer = model.get();
     models.emplace(name, std::move(model));
     return pointer;
+}
+
+float Resources::getModelBottom(const std::string& name) {
+    auto found = modelBottoms.find(name);
+    if (found != modelBottoms.end()) {
+        return found->second;
+    }
+
+    float bottom = 0.0f;
+
+    if (const ForestModel* forestModel = findForestModel(name)) {
+        bottom = lowestY(forestModel->data, forestModel->floatCount, 8);
+    } else if (name == "cube") {
+        bottom = lowestY(cube, sizeof(cube) / sizeof(float), 8);
+    } else if (name == "sphere") {
+        bottom = -0.5f;
+    } else if (name == "torus") {
+        bottom = -0.15f;
+    } else {
+        std::cerr << "Resources: unknown model bottom '" << name << "' -> 0" << std::endl;
+    }
+
+    modelBottoms.emplace(name, bottom);
+    return bottom;
 }
 
 const LoadedModel& Resources::getObjModel(const std::string& path, bool mergeColors) {

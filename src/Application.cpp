@@ -6,6 +6,15 @@
 #include "Scenes/ShowcaseScene.h"
 #include "Inputs/ShowcaseInput.h"
 #include "Scenes/CV2Scene.h"
+#include "Scenes/CV3Scene.h"
+#include "Scenes/CV4Scene.h"
+#include "Scenes/CV5Scene.h"
+#include "Scenes/CV6Scene.h"
+#include "Scenes/CV7Scene.h"
+#include "Scenes/CV8Scene.h"
+#include "Scenes/CV9Scene.h"
+#include "Scenes/CV10Scene.h"
+
 #include "Inputs/SceneInput.h"
 
 #define GLAD_GL_IMPLEMENTATION
@@ -24,6 +33,14 @@ void Application::createScenes() {
     addScene<ShowcaseScene, ShowcaseInput>();
     addScene<TestScene, TestSceneInput>();
 	addScene<CV2Scene, SceneInput>();
+    addScene<CV3Scene, SceneInput>();
+    addScene<CV4Scene, SceneInput>();
+    addScene<CV5Scene, SceneInput>();
+    addScene<CV6Scene, SceneInput>();
+    addScene<CV7Scene, SceneInput>();
+    addScene<CV8Scene, SceneInput>();
+    addScene<CV9Scene, SceneInput>();
+    addScene<CV10Scene, SceneInput>();
 
     activateScene(0);
 }

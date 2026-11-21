@@ -283,11 +283,14 @@ void Scene::draw() const {
         hudProgram->setUniform("projectionMatrix", glm::ortho(-hudAspect, hudAspect, -1.0f, 1.0f, -1.0f, 1.0f));
 
         glDisable(GL_DEPTH_TEST);
-        
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
         for (DrawableObject* object : hudObjects) {
             object->draw();
         }
-        
+
+        glDisable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
     }
 
